@@ -5,7 +5,7 @@ function closeMenu(){ navigation.classList.remove('open'); menu.setAttribute('ar
 menu.addEventListener('click',()=>{const open=navigation.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'關閉導覽選單':'開啟導覽選單');});
 navigation.querySelectorAll('a').forEach(link=>link.addEventListener('click',closeMenu));
 document.addEventListener('keydown',event=>{if(event.key==='Escape'&&navigation.classList.contains('open')){closeMenu();menu.focus();}});
-window.matchMedia('(min-width: 721px)').addEventListener('change',event=>{if(event.matches)closeMenu();});
+window.matchMedia('(min-width: 881px)').addEventListener('change',event=>{if(event.matches)closeMenu();});
 const filters=document.querySelectorAll('[data-filter]');
 const projects=document.querySelectorAll('[data-category]');
 filters.forEach(button=>button.addEventListener('click',()=>{filters.forEach(item=>{const active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-pressed',String(active));});let count=0;projects.forEach(project=>{project.hidden=button.dataset.filter!=='all'&&project.dataset.category!==button.dataset.filter;if(!project.hidden)count++;});document.querySelector('#filter-status').textContent=`${button.textContent}：顯示 ${count} 個研究計畫`; }));

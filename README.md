@@ -1,40 +1,29 @@
-# 謝旻儕 Min-Chai Hsieh 個人網站
+# 謝旻儕個人網站
 
-以 XR 延展實境、AI 應用與數位學習為主題的個人學術網站。
+公開網站：https://tutminchai.github.io/minchaihsieh/
 
-網站：https://tutminchai.github.io/minchaihsieh/
+以 HTML、CSS、JavaScript 製作的響應式個人網站，透過 GitHub Pages 的 main 分支根目錄發布。
 
-## 內容
+## 網站內容
 
-個人簡介、六項研究計畫、精選期刊論文、六本專書、教學與產學合作，以及聯絡信箱 shiehminchai@gmail.com。包含響應式導覽、研究分類篩選、可展開課程資訊、鍵盤操作與減少動態效果設定。
+- 個人簡介、學歷、經歷及榮譽
+- 研究計畫與主題篩選
+- 六本專書
+- 教學領域及合作單位
+- 聯絡資訊：shiehminchai@gmail.com
 
-## 修改與預覽
+履歷與專書資料參考 https://sites.google.com/site/minchaihsieh/ 及本人提供的履歷。專書「AR 擴增實境輕鬆學」出版年依 Google 個人網站為 2021。
 
-純 HTML、CSS 與 JavaScript，不需安裝套件或執行編譯。
+## 設計與維護
 
-- `index.html`：網站內容、連結、搜尋引擎與社群分享資訊。
-- `styles.css`：版面與手機樣式。
-- `script.js`：導覽及研究分類篩選。
-- `assets/`：照片、書封與圖示。
+白底、墨藍及朱紅的日系編輯排版。未使用人物照片、學生作品或學術論文列表。書籍圖片保留原始封面；兩本附白色背景的書封以 CSS 輪廓遮罩移除外側白邊，避免生成式處理改動原封面的作者或書名。六本書封統一顯示高度與底線。
 
-在此資料夾執行 `python3 -m http.server 8000`，開啟 `http://localhost:8000` 預覽。也可直接開啟 `index.html`。
+主要內容位於 index.html，排版位於 styles.css，導覽與研究篩選位於 script.js。圖片只用於本人網站介紹，不另行授予轉用權利。
 
-## GitHub Pages
+## 本機預覽
 
-Repository Settings → Pages → Deploy from a branch → `main` → `/ (root)` → Save。更新 `main` 後由 GitHub Pages 發布。
+```sh
+python3 -m http.server 8765 --bind 127.0.0.1
+```
 
-## 資料依據
-
-內容整理自本人提供之履歷；圖片取自同份履歷。網站僅呈現專業資訊，未附完整履歷原檔。
-
-公開資料及精選論文已於 2026-11-08 核對：
-
-- 學校教師頁：https://dma.tut.edu.tw/p/16-1070-8992.php?Lang=zh-tw
-- JMIR：https://doi.org/10.2196/57327
-- 新生兒護理 VR 研究：https://doi.org/10.5334/pme.1538
-- AR 牡蠣學習研究：https://doi.org/10.3390/electronics10222818
-- AR 數學學習研究：https://jit.ndhu.edu.tw/article/view/2148
-
-原履歷中的 JMIR 文章題名已依正式出版頁修正；新生兒護理 VR 文章的期刊名依正式出版資料列為 Perspectives on Medical Education。
-
-照片、著作封面及個人內容之權利歸原權利人所有，未額外授予開源使用授權。
+在瀏覽器開啟 http://127.0.0.1:8765 。部署不需安裝套件或執行建置。
