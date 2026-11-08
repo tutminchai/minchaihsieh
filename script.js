@@ -100,3 +100,90 @@ if ('IntersectionObserver' in window) {
   document.querySelectorAll('main section[id]').forEach(section => observer.observe(section));
 }
 document.querySelector('#year').textContent = new Date().getFullYear();
+
+// The full archive stays on this page, so closing it returns to the selected talks.
+const talkArchive = document.querySelector('#talk-archive');
+const archiveOpeners = [...document.querySelectorAll('[data-open-talk-archive]')];
+if (talkArchive && typeof talkArchive.showModal === 'function') {
+  const search = talkArchive.querySelector('#talk-search');
+  const yearFilter = talkArchive.querySelector('#talk-year');
+  const reset = talkArchive.querySelector('#talk-reset');
+  const status = talkArchive.querySelector('#talk-results-status');
+  const empty = talkArchive.querySelector('#talk-empty');
+  const scrollArea = talkArchive.querySelector('.archive-results');
+  const rows = [...talkArchive.querySelectorAll('.archive-record')];
+  const groups = [...talkArchive.querySelectorAll('.archive-year-group')];
+  const normalizeSearch = value => value.normalize('NFKC').toLocaleLowerCase('zh-TW').replace(/臺/g, '台');
+  const searchable = new Map(rows.map(row => [row, normalizeSearch(row.textContent)]));
+  let opener;
+  let backdropPointer = false;
+
+  function filterTalks() {
+    const terms = normalizeSearch(search.value).trim().split(/\s+/).filter(Boolean);
+    let count = 0;
+    rows.forEach(row => {
+      const matchesYear = !yearFilter.value || row.dataset.year === yearFilter.value;
+      const matchesQuery = terms.every(term => searchable.get(row).includes(term));
+      row.hidden = !(matchesYear && matchesQuery);
+      if (!row.hidden) count++;
+    });
+    groups.forEach(group => {
+      const visible = [...group.querySelectorAll('.archive-record')].filter(row => !row.hidden).length;
+      group.hidden = visible === 0;
+      group.querySelector('.archive-year-count').textContent = `${visible} 場`;
+    });
+    status.textContent = `顯示 ${count} / ${rows.length} 場紀錄`;
+    empty.hidden = count > 0;
+    reset.disabled = !search.value && !yearFilter.value;
+    scrollArea.scrollTop = 0;
+  }
+
+  archiveOpeners.forEach(button => {
+    button.hidden = false;
+    button.addEventListener('click', () => {
+      if (talkArchive.open) return;
+      opener = button;
+      document.documentElement.classList.add('archive-is-open');
+      talkArchive.showModal();
+    });
+  });
+  talkArchive.querySelector('[data-close-talk-archive]').addEventListener('click', () => talkArchive.close());
+  talkArchive.addEventListener('close', () => {
+    document.documentElement.classList.remove('archive-is-open');
+    opener?.focus({ preventScroll: true });
+  });
+  talkArchive.addEventListener('keydown', event => {
+    if (event.key !== 'Tab') return;
+    const controls = [...talkArchive.querySelectorAll('button:not(:disabled), input, select, a[href], [tabindex="0"]')].filter(control => control.getClientRects().length);
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+  // Only a press and release outside the panel closes the backdrop.
+  const outsidePanel = event => {
+    const box = talkArchive.getBoundingClientRect();
+    return event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom;
+  };
+  talkArchive.addEventListener('pointerdown', event => {
+    backdropPointer = event.target === talkArchive && outsidePanel(event);
+  });
+  talkArchive.addEventListener('click', event => {
+    if (backdropPointer && event.target === talkArchive && outsidePanel(event)) talkArchive.close();
+    backdropPointer = false;
+  });
+  search.addEventListener('input', filterTalks);
+  yearFilter.addEventListener('change', filterTalks);
+  reset.addEventListener('click', () => {
+    search.value = '';
+    yearFilter.value = '';
+    filterTalks();
+    search.focus();
+  });
+  filterTalks();
+}
