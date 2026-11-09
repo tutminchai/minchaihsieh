@@ -187,3 +187,96 @@ if (talkArchive && typeof talkArchive.showModal === 'function') {
   });
   filterTalks();
 }
+
+// All records remain readable without JavaScript; tabs progressively group them.
+const portfolioTabs = [...document.querySelectorAll('[data-portfolio]')];
+if (portfolioTabs.length) {
+  document.querySelector('.portfolio-tabs').hidden = false;
+  const selectPortfolio = (tab, moveFocus = false) => {
+    portfolioTabs.forEach(item => {
+      const active = item === tab;
+      item.setAttribute('aria-selected', String(active));
+      item.tabIndex = active ? 0 : -1;
+      document.getElementById(item.getAttribute('aria-controls')).hidden = !active;
+    });
+    if (moveFocus) tab.focus();
+  };
+  portfolioTabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectPortfolio(tab));
+    tab.addEventListener('keydown', event => {
+      let next;
+      if (event.key === 'ArrowRight') next = (index + 1) % portfolioTabs.length;
+      else if (event.key === 'ArrowLeft') next = (index - 1 + portfolioTabs.length) % portfolioTabs.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = portfolioTabs.length - 1;
+      else return;
+      event.preventDefault();
+      selectPortfolio(portfolioTabs[next], true);
+    });
+  });
+  selectPortfolio(portfolioTabs[0]);
+}
+document.querySelectorAll('[data-more-list]').forEach(button => {
+  const cards = [...document.getElementById(button.dataset.moreList).children];
+  let limit = 6;
+  const render = () => {
+    cards.forEach((card, index) => { card.hidden = index >= limit; });
+    const remaining = Math.max(0, cards.length - limit);
+    button.hidden = remaining === 0;
+    button.textContent = `查看更多（尚有 ${remaining} 件） ↓`;
+  };
+  button.addEventListener('click', () => {
+    const next = cards[limit];
+    limit += 6;
+    render();
+    const heading = next?.querySelector('h4');
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); heading.scrollIntoView({ block: 'nearest' }); }
+  });
+  render();
+});
+
+const helper = document.querySelector('.invite-helper');
+if (helper) {
+  const launcher = helper.querySelector('.invite-launcher');
+  const panel = helper.querySelector('#invite-panel');
+  const close = helper.querySelector('.invite-close');
+  const answer = helper.querySelector('.invite-answer');
+  const questions = [...helper.querySelectorAll('[data-invite-question]')];
+  const answers = {
+    topics: '可洽談的方向包括：\n・AI 教學應用與數位教材\n・生成式 AI 遊戲與網頁實作\n・AR／VR 與科學教育\n・教育元宇宙與互動設計\n\n可依學校需求討論合適的內容。',
+    format: '適合各級學校教師與學生，可依對象調整難度。\n\n形式可討論 60–90 分鐘專題演講、2–3 小時實作研習，或半日／全日工作坊。實際時長與設備需求請聯繫確認。',
+    request: '聯繫時，請提供：\n・學校／單位與聯絡窗口\n・希望主題與參與對象\n・預估人數、日期與時長\n・活動地點與設備條件\n\n點下方 Email 按鈕，即可開啟附有邀約欄位的信件。'
+  };
+  const closeHelper = (returnFocus = false) => {
+    panel.hidden = true;
+    launcher.setAttribute('aria-expanded', 'false');
+    if (returnFocus) launcher.focus({ preventScroll: true });
+  };
+  helper.hidden = false;
+  launcher.addEventListener('click', () => {
+    if (!panel.hidden) { closeHelper(true); return; }
+    panel.hidden = false;
+    launcher.setAttribute('aria-expanded', 'true');
+    close.focus({ preventScroll: true });
+  });
+  close.addEventListener('click', () => closeHelper(true));
+  questions.forEach(button => button.addEventListener('click', () => {
+    questions.forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+    answer.textContent = answers[button.dataset.inviteQuestion];
+    answer.hidden = false;
+    answer.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }));
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !panel.hidden && !document.querySelector('dialog[open]')) {
+      closeHelper(true);
+    }
+  });
+  document.addEventListener('click', event => {
+    if (!panel.hidden && !helper.contains(event.target)) closeHelper();
+  });
+  helper.querySelector('.invite-records').addEventListener('click', () => {
+    closeHelper();
+    const heading = document.querySelector('#selected-talks h3, #selected-talks h2');
+    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+  });
+}
