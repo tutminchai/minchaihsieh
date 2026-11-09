@@ -145,6 +145,6 @@ html.archive-is-open{overflow:hidden}
 .contact-details .email{font-family:var(--sans);font-size:18px;font-weight:400;line-height:1.7;letter-spacing:0;color:var(--paper);margin:8px 0 0;overflow-wrap:anywhere}
 @media(max-width:600px){.contact-details .email{font-size:16px}}
 
-@media(max-width:600px){.portfolio-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.portfolio-tabs button{flex-direction:column;justify-content:center;gap:2px;padding:10px 6px}}
+
 
 .profile-facts>div:first-child:nth-last-child(2){grid-column:1/-1}
