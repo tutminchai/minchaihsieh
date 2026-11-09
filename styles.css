@@ -91,7 +91,7 @@ html.archive-is-open{overflow:hidden}
 @media(max-width:600px){.speaking-jump-links button{font-size:17px;gap:12px}.talk-archive-invite h4{font-size:23px}.talk-archive-invite p{font-size:16px}.talk-archive-invite .button{font-size:17px;padding:12px 18px}.talk-archive{width:calc(100% - 20px);height:calc(100dvh - 28px);max-height:calc(100dvh - 28px)}.archive-header{padding:18px 17px 14px;gap:12px}.archive-header .eyebrow{font-size:10px;letter-spacing:.1em}.archive-header h2{font-size:24px;letter-spacing:0;line-height:1.45}.archive-header p:last-child{font-size:14px;margin-top:6px}.archive-close{padding:7px 10px;min-height:44px;gap:6px;font-size:14px}.archive-close span{font-size:22px}.archive-controls{padding:0 17px 12px;grid-template-columns:minmax(0,1fr) auto;gap:9px 12px}.archive-search-control{grid-column:1/-1}.archive-control>span{font-size:13px}.archive-control input,.archive-control select{font-size:16px;height:44px;padding:9px 10px}.archive-reset{min-height:44px;padding:7px 14px;font-size:15px}.archive-status{padding:0 17px 10px;font-size:13px}.archive-results{padding:0 17px 18px}.archive-year-group{margin-top:20px}.archive-year-heading h3{font-size:26px}.archive-record{grid-template-columns:1fr;gap:5px;padding:17px 0}.archive-date{font-size:15px;padding:0}.archive-date .date-range-end{display:inline}.archive-record h4{font-size:21px;margin-bottom:5px;line-height:1.65}.archive-record p{font-size:16px}.archive-footer{padding:13px 17px;gap:12px}.archive-footer p{font-size:13px}.archive-footer a{font-size:16px}.archive-empty{padding:34px 0}.archive-empty h3{font-size:22px}.archive-empty p{font-size:16px}}
 @media(max-height:520px) and (orientation:landscape){.archive-header{padding-top:12px;padding-bottom:10px}.archive-header .eyebrow,.archive-header p:last-child{display:none}.archive-header h2{font-size:26px}.archive-controls{grid-template-columns:minmax(0,1fr) 135px auto;padding-bottom:10px}.archive-search-control{grid-column:auto}.archive-reset{grid-column:auto}.archive-control>span{display:none}.archive-footer{padding-block:10px}}
 
-/* Research, industry work, student mentorship, and patent records. */
+/* Research, student mentorship, and patent records. */
 .portfolio-tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:30px;flex-wrap:wrap}
 .portfolio-tabs button{border:1px solid var(--line);border-radius:4px;background:transparent;padding:11px 22px;font-size:18px;display:flex;align-items:center;gap:18px;min-height:48px}
 .portfolio-tabs button span{font:14px/1.4 var(--sans);font-variant-numeric:tabular-nums;opacity:.7}
@@ -144,3 +144,7 @@ html.archive-is-open{overflow:hidden}
 /* Contact actions live in the floating LINE / Email helper. */
 .contact-details .email{font-family:var(--sans);font-size:18px;font-weight:400;line-height:1.7;letter-spacing:0;color:var(--paper);margin:8px 0 0;overflow-wrap:anywhere}
 @media(max-width:600px){.contact-details .email{font-size:16px}}
+
+@media(max-width:600px){.portfolio-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}.portfolio-tabs button{flex-direction:column;justify-content:center;gap:2px;padding:10px 6px}}
+
+.profile-facts>div:first-child:nth-last-child(2){grid-column:1/-1}
