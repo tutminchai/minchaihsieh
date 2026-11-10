@@ -1,15 +1,24 @@
 'use strict';
+const isEnglish = document.documentElement.lang === 'en';
+const localize = (zh, en) => isEnglish ? en : zh;
+// Native links work without JavaScript; preserve the current section on a switch.
+document.querySelectorAll('[data-language]').forEach(link => {
+  const base = link.getAttribute('href');
+  const syncLanguageLink = () => { link.setAttribute('href', base + window.location.hash); };
+  syncLanguageLink();
+  window.addEventListener('hashchange', syncLanguageLink);
+});
 const menu = document.querySelector('.menu-toggle');
 const navigation = document.querySelector('#navigation');
 function closeMenu() {
   navigation.classList.remove('open');
   menu.setAttribute('aria-expanded', 'false');
-  menu.setAttribute('aria-label', '開啟導覽選單');
+  menu.setAttribute('aria-label', localize('開啟導覽選單', 'Open navigation menu'));
 }
 menu.addEventListener('click', () => {
   const open = navigation.classList.toggle('open');
   menu.setAttribute('aria-expanded', String(open));
-  menu.setAttribute('aria-label', open ? '關閉導覽選單' : '開啟導覽選單');
+  menu.setAttribute('aria-label', open ? localize('關閉導覽選單', 'Close navigation menu') : localize('開啟導覽選單', 'Open navigation menu'));
 });
 navigation.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
 document.addEventListener('keydown', event => {
@@ -61,10 +70,10 @@ function renderProjects() {
     item.classList.toggle('active', active);
     item.setAttribute('aria-pressed', String(active));
   });
-  filterStatus.textContent = `${activeFilter.textContent}：顯示 ${visible.size} / ${matching.length} 項計畫`;
+  filterStatus.textContent = localize(`${activeFilter.textContent}：顯示 ${visible.size} / ${matching.length} 項計畫`, `${activeFilter.textContent}: showing ${visible.size} / ${matching.length} projects`);
   const remaining = matching.length - visible.size;
   moreProjects.hidden = remaining === 0;
-  moreProjects.innerHTML = `查看更多計畫（尚有 ${remaining} 項）<span aria-hidden="true">↓</span>`;
+  moreProjects.innerHTML = localize(`查看更多計畫（尚有 ${remaining} 項）`, `More projects (${remaining} remaining)`) + '<span aria-hidden="true">↓</span>';
 }
 filters.forEach(button => button.addEventListener('click', () => {
   activeFilter = button;
@@ -114,7 +123,7 @@ if (talkArchive && typeof talkArchive.showModal === 'function') {
   const rows = [...talkArchive.querySelectorAll('.archive-record')];
   const groups = [...talkArchive.querySelectorAll('.archive-year-group')];
   const normalizeSearch = value => value.normalize('NFKC').toLocaleLowerCase('zh-TW').replace(/臺/g, '台');
-  const searchable = new Map(rows.map(row => [row, normalizeSearch(row.textContent)]));
+  const searchable = new Map(rows.map(row => [row, normalizeSearch(row.textContent + ' ' + (row.dataset.searchOriginal || ''))]));
   let opener;
   let backdropPointer = false;
 
@@ -130,9 +139,9 @@ if (talkArchive && typeof talkArchive.showModal === 'function') {
     groups.forEach(group => {
       const visible = [...group.querySelectorAll('.archive-record')].filter(row => !row.hidden).length;
       group.hidden = visible === 0;
-      group.querySelector('.archive-year-count').textContent = `${visible} 場`;
+      group.querySelector('.archive-year-count').textContent = localize(`${visible} 場`, `${visible} ${visible === 1 ? 'talk' : 'talks'}`);
     });
-    status.textContent = `顯示 ${count} / ${rows.length} 場紀錄`;
+    status.textContent = localize(`顯示 ${count} / ${rows.length} 場紀錄`, `Showing ${count} / ${rows.length} records`);
     empty.hidden = count > 0;
     reset.disabled = !search.value && !yearFilter.value;
     scrollArea.scrollTop = 0;
@@ -223,7 +232,7 @@ document.querySelectorAll('[data-more-list]').forEach(button => {
     cards.forEach((card, index) => { card.hidden = index >= limit; });
     const remaining = Math.max(0, cards.length - limit);
     button.hidden = remaining === 0;
-    button.textContent = `查看更多（尚有 ${remaining} 件） ↓`;
+    button.textContent = localize(`查看更多（尚有 ${remaining} 件） ↓`, `Show more (${remaining} remaining) ↓`);
   };
   button.addEventListener('click', () => {
     const next = cards[limit];
@@ -242,7 +251,11 @@ if (helper) {
   const close = helper.querySelector('.invite-close');
   const answer = helper.querySelector('.invite-answer');
   const questions = [...helper.querySelectorAll('[data-invite-question]')];
-  const answers = {
+  const answers = isEnglish ? {
+    topics: 'Topics include:\n• AI in teaching and digital learning materials\n• Generative AI for game and web projects\n• AR/VR and science education\n• Educational metaverse and interaction design\n\nContent can be discussed to suit your school’s needs.',
+    format: 'Sessions can be adapted for teachers and students at different educational levels.\n\nPossible formats include a 60–90 minute talk, a 2–3 hour practical session, or a half-day / full-day workshop. Please get in touch to confirm duration and equipment needs.',
+    request: 'Please include:\n• School / organization and contact person\n• Topic and intended audience\n• Estimated attendance, date and duration\n• Venue and available equipment\n\nThe email button below opens a draft with these fields.'
+  } : {
     topics: '可洽談的方向包括：\n・AI 教學應用與數位教材\n・生成式 AI 遊戲與網頁實作\n・AR／VR 與科學教育\n・教育元宇宙與互動設計\n\n可依學校需求討論合適的內容。',
     format: '適合各級學校教師與學生，可依對象調整難度。\n\n形式可討論 60–90 分鐘專題演講、2–3 小時實作研習，或半日／全日工作坊。實際時長與設備需求請聯繫確認。',
     request: '聯繫時，請提供：\n・學校／單位與聯絡窗口\n・希望主題與參與對象\n・預估人數、日期與時長\n・活動地點與設備條件\n\n點下方 Email 按鈕，即可開啟附有邀約欄位的信件。'
@@ -280,3 +293,4 @@ if (helper) {
     if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
   });
 }
+

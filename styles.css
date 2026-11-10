@@ -231,3 +231,115 @@ html.archive-is-open{overflow:hidden}
 .university-recognition{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:30px}
 .university-recognition .recognition-item{border-top:2px solid var(--red)}
 @media(max-width:880px){.university-recognition{grid-template-columns:1fr}.university-recognition .recognition-item{padding-block:20px}.recognition-group+.recognition-group{margin-top:24px}}
+
+/* Full-page language navigation and bookshop links. */
+.nav-wrap{gap:24px}
+#navigation{margin-left:auto;gap:24px}
+.header-controls{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.language-switch{display:flex;align-items:center;gap:2px;border-left:1px solid var(--line);padding-left:16px}
+.language-switch a{display:inline-flex;align-items:center;justify-content:center;min-width:38px;min-height:44px;font:500 15px/1.2 var(--sans);color:var(--muted);border-bottom:2px solid transparent}
+.language-switch a:hover,.language-switch a[aria-current="page"]{color:var(--red);border-bottom-color:var(--red)}
+.book-link{display:block;height:100%}
+.book-store{display:inline-flex;gap:10px;align-items:center;font:500 15px/1.6 var(--sans);margin-top:14px;padding-bottom:3px;border-bottom:1px solid var(--line);color:var(--red)}
+.book-link:hover .book-store{border-color:var(--red)}
+.book-link:hover h3{color:var(--red)}
+.book-store>span[aria-hidden]{display:inline-block;position:relative;width:12px;height:12px;font-size:0;flex-shrink:0}
+.book-store>span[aria-hidden]::before{content:"";position:absolute;right:0;top:0;width:7px;height:7px;border-top:1px solid currentColor;border-right:1px solid currentColor}
+.book-store>span[aria-hidden]::after{content:"";position:absolute;left:0;top:6px;width:14px;border-top:1px solid currentColor;transform:rotate(-45deg)}
+.book-edition-note{font-size:15px;color:var(--muted);margin:-16px 0 30px}
+html[lang="en"]{--serif:Georgia,"Times New Roman",serif;--sans:Arial,"Helvetica Neue",sans-serif}
+html[lang="en"] body{font-size:18px;line-height:1.75}
+html[lang="en"] .brand-name{font-size:23px;letter-spacing:0;white-space:nowrap}
+html[lang="en"] .brand-name>span{font-size:13px;letter-spacing:.06em}
+html[lang="en"] #navigation>a{font-size:16px}
+html[lang="en"] .hero-grid{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:56px}
+html[lang="en"] .hero h1{font-size:clamp(42px,4.6vw,64px);line-height:1.15;letter-spacing:-.025em;white-space:normal;margin:20px 0 24px}
+html[lang="en"] .hero-copy>.eyebrow{font-size:13px}
+html[lang="en"] .role{display:block;font-size:17px;line-height:1.65;letter-spacing:0}
+html[lang="en"] .role>span{display:block}
+html[lang="en"] .role strong{display:block;margin:3px 0 0;color:var(--red)}
+html[lang="en"] .hero-intro{font-size:18px;line-height:1.75}
+html[lang="en"] .hero-intro strong{font-size:27px;line-height:1.4;letter-spacing:0}
+html[lang="en"] .speaker-proof{gap:28px}
+html[lang="en"] .speaker-proof>p>span{font-size:14px}
+html[lang="en"] .hero-topline{letter-spacing:.02em;font-size:13px}
+html[lang="en"] .hero-topline p span{margin:0 10px}
+html[lang="en"] .hero-bottom{font-size:14px;letter-spacing:.01em;gap:18px}
+html[lang="en"] .field-composition{padding:20px 24px 0;background:var(--soft)}
+html[lang="en"] .field-columns{display:flex;flex-direction:column;gap:0;padding:0 0 12px}
+html[lang="en"] .field-column{display:grid;grid-template-columns:26px minmax(0,1fr);align-items:baseline;min-height:0;gap:14px;border:0;border-top:1px solid var(--line);padding:16px 0}
+html[lang="en"] .vertical-title{writing-mode:horizontal-tb;font-size:23px;line-height:1.3;letter-spacing:0}
+html[lang="en"] .field-en{display:none}
+html[lang="en"] .field-caption{font-size:14px;letter-spacing:.02em;padding-bottom:16px}
+html[lang="en"] .field-footnote{margin:0 -24px;padding:15px 18px;font-size:13px;line-height:1.7;letter-spacing:0}
+html[lang="en"] .field-footnote span{display:block;margin:0}
+html[lang="en"] .section-heading h2{font-size:40px;line-height:1.25;letter-spacing:-.01em}
+html[lang="en"] .section-heading h2>span{display:block;font-size:17px;line-height:1.65;letter-spacing:0;margin:12px 0 0}
+html[lang="en"] .lead{font-size:27px;line-height:1.45;letter-spacing:0}
+html[lang="en"] .talk-card h3,html[lang="en"] .project-card h3,html[lang="en"] .selected-talk-card h4{font-size:26px;line-height:1.3;letter-spacing:0}
+html[lang="en"] .practice-card h4,html[lang="en"] .patent-card h4,html[lang="en"] .recognition-item h5{font-size:24px;line-height:1.35;letter-spacing:0;overflow-wrap:break-word}
+html[lang="en"] .book h3{font-size:23px;line-height:1.35;letter-spacing:0}
+html[lang="en"] .book-info>p{font-size:16px;line-height:1.6}
+html[lang="en"] .profile-facts>div{grid-template-columns:1fr;gap:14px}
+html[lang="en"] .profile-facts dt{font-size:16px;color:var(--red)}
+html[lang="en"] .portfolio-tabs{flex-wrap:wrap}
+html[lang="en"] .portfolio-tabs button{font-size:17px;gap:12px;padding-inline:20px}
+html[lang="en"] .recognition-group-title{line-height:1.5}
+html[lang="en"] .recognition-meta{flex-wrap:wrap;gap:8px 14px}
+html[lang="en"] .recognition-meta>span{font-size:15px}
+html[lang="en"] .project-meta{flex-wrap:wrap;gap:5px 12px;font-size:13px}
+html[lang="en"] .contact-affiliation{font-size:16px;line-height:1.65;max-width:300px}
+html[lang="en"] .invite-heading h2{font-size:23px;letter-spacing:0}
+html[lang="en"] .archive-record h4{font-size:22px;line-height:1.4}
+html[lang="en"] .archive-record p{font-size:16px;line-height:1.6}
+@media(max-width:1100px){
+  .nav-wrap{gap:16px}#navigation{gap:17px}
+  html[lang="en"] .brand-name{font-size:21px}
+  html[lang="en"] #navigation>a{font-size:15px}
+  html[lang="en"] .hero-grid{gap:34px}
+}
+@media(max-width:880px){
+  #navigation{margin:0}
+  .header-controls{margin-left:auto}
+  .language-switch{border:0;padding-left:0}
+  html[lang="en"] .hero-grid{grid-template-columns:1fr;gap:40px}
+  html[lang="en"] .field-composition{max-width:none}
+  html[lang="en"] .field-columns{display:grid;grid-template-columns:1fr 1fr;column-gap:28px}
+  html[lang="en"] .vertical-title{font-size:23px}
+  html[lang="en"] .hero-topline{align-items:start}
+  html[lang="en"] .hero-topline>span{white-space:nowrap}
+}
+@media(max-width:600px){
+  .nav-wrap{gap:8px;width:calc(100% - 32px)}
+  .header-controls{gap:6px}
+  .language-switch a{font-size:14px;min-width:33px}
+  .menu-toggle{font-size:0;padding:7px 10px;gap:0;min-height:44px}
+  .menu-toggle>span{font-size:19px}
+  html[lang="en"] .brand{gap:8px}
+  html[lang="en"] .brand-name{font-size:17px}
+  html[lang="en"] .brand-name>span{font-size:11px}
+  html[lang="en"] .brand-emblem{width:36px;height:36px}
+  html[lang="en"] .hero-topline>span{display:none}
+  html[lang="en"] .hero-topline{font-size:12px;letter-spacing:0}
+  html[lang="en"] .hero h1{font-size:44px;line-height:1.1;margin:18px 0}
+  html[lang="en"] .hero-intro strong{font-size:26px}
+  html[lang="en"] .hero-bottom{font-size:12px;gap:16px;align-items:center}
+  html[lang="en"] .hero-bottom>a{gap:6px}
+  html[lang="en"] .field-columns{display:flex}
+  html[lang="en"] .field-column{padding:13px 0}
+  html[lang="en"] .field-caption{font-size:13px}
+  html[lang="en"] .section-heading h2{font-size:32px}
+  html[lang="en"] .section-heading h2>span{font-size:16px}
+  html[lang="en"] .speaker-proof{gap:20px}
+  html[lang="en"] .speaker-proof>p>span{font-size:13px}
+  html[lang="en"] .speaker-proof strong span{font-size:16px}
+  html[lang="en"] .portfolio-tabs button{font-size:15px;padding:12px;gap:8px}
+  html[lang="en"] .book h3{font-size:19px}
+  html[lang="en"] .book-info>p{font-size:14px}
+  html[lang="en"] .book-store{font-size:13px;gap:4px}
+  html[lang="en"] .archive-header h2{font-size:25px}
+  html[lang="en"] .archive-record h4{font-size:20px}
+  html[lang="en"] .contact-affiliation{max-width:none}
+}
+@media(max-width:360px){html[lang="en"] .brand-name{font-size:15px}html[lang="en"] .brand-emblem{width:32px;height:32px}}
+
