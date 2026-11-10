@@ -182,3 +182,7 @@ html.archive-is-open{overflow:hidden}
 .project-recognition{align-self:flex-start;font-size:15px;color:var(--red);border-left:2px solid currentColor;padding-left:10px;margin:0 0 22px;line-height:1.7}
 @media(max-width:880px){.media-heading{align-items:start;flex-direction:column;gap:12px}.media-grid{gap:28px}.media-card h4{font-size:22px}}
 @media(max-width:600px){.media-features,.research-awards{margin-top:38px;padding-top:28px}.media-heading h3,.awards-heading h3{font-size:26px;letter-spacing:.02em}.media-heading>p{font-size:16px}.media-grid,.research-award-grid{grid-template-columns:1fr}.media-grid{gap:30px}.media-card{padding-top:18px}.media-card .media-outlet{margin-top:16px}.media-card .media-description{margin-bottom:18px}.research-award-feature{align-items:start;flex-direction:column;gap:8px;padding:19px 20px;margin-bottom:24px}.research-award-feature h4{font-size:22px}.research-award-feature div>p{font-size:16px}.research-award h4{font-size:20px}.research-awards+.honors{margin-top:20px}}
+
+/* A quiet contact block without an invitation checklist. */
+.contact-grid.contact-grid-simple{grid-template-columns:minmax(0,1fr);max-width:680px}
+.contact-grid-simple .contact-details{min-width:0}
