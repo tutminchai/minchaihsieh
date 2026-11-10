@@ -18,6 +18,8 @@ translations.update({
     '中文': '中文',
     '博客來': 'Books.com.tw',
     '博客來搜尋': 'Search Books.com.tw',
+    '誠品線上': 'Eslite',
+    '金石堂': 'Kingstone',
     '書籍為繁體中文版。': 'All books are published in Traditional Chinese. English titles are provided for reference.',
     '謝旻儕，回到首頁': 'Min-Chai Hsieh — Home',
     '謝旻儕個人圖記：圓環、書頁與日光': 'Personal emblem: a circle, open book and sunlight',
