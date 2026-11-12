@@ -266,6 +266,25 @@ if (helper) {
     if (returnFocus) launcher.focus({ preventScroll: true });
   };
   helper.hidden = false;
+  // Keep the fixed contact control above the footer's links at every screen size.
+  const footer = document.querySelector('.site-footer');
+  if (footer) {
+    let scheduled = false;
+    const placeHelper = () => {
+      scheduled = false;
+      const overlap = Math.max(0, window.innerHeight - footer.getBoundingClientRect().top);
+      helper.style.setProperty('--invite-footer-offset', Math.ceil(overlap) + 'px');
+    };
+    const schedulePlacement = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(placeHelper);
+    };
+    window.addEventListener('scroll', schedulePlacement, { passive: true });
+    window.addEventListener('resize', schedulePlacement);
+    if ('ResizeObserver' in window) new ResizeObserver(schedulePlacement).observe(footer);
+    placeHelper();
+  }
   launcher.addEventListener('click', () => {
     if (!panel.hidden) { closeHelper(true); return; }
     panel.hidden = false;
