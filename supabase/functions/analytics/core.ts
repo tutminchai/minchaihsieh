@@ -15,7 +15,7 @@ async function body(req:Request){
  const out=new Uint8Array(size);let offset=0;for(const p of parts){out.set(p,offset);offset+=p.length;}
  try{return JSON.parse(new TextDecoder().decode(out));}catch{throw Error('bad_body');}
 }
-function dates(u:URL){const from=u.searchParams.get('from')||taipeiDay(Date.now()-6*DAY),to=u.searchParams.get('to')||taipeiDay();if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||from<taipeiDay(Date.now()-89*DAY)||to>taipeiDay()||from>to)throw Error('bad_dates');for(const d of [from,to]){const n=Date.parse(d+'T00:00:00+08:00');if(!Number.isFinite(n)||taipeiDay(n)!==d)throw Error('bad_dates');}return {from,to};}
+function dates(u:URL){const from=u.searchParams.get('from')||taipeiDay(Date.now()-6*DAY),to=u.searchParams.get('to')||taipeiDay();if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||from<'2000-01-01'||to>taipeiDay()||from>to)throw Error('bad_dates');for(const d of [from,to]){const n=Date.parse(d+'T00:00:00+08:00');if(!Number.isFinite(n)||taipeiDay(n)!==d)throw Error('bad_dates');}return {from,to};}
 export function createHandler(env:Env,deps:Dependencies={}){
  const fetcher=deps.fetcher||fetch;
  const rpc=deps.rpc||async function(action:string,data:Record<string,unknown>){
@@ -72,10 +72,11 @@ export function createHandler(env:Env,deps:Dependencies={}){
    }
    if(path==='/api/ip'&&req.method==='POST'){
     const data=await body(req);if(!data||!validUUID(data.id))return json({error:'找不到紀錄'},404);
-    const row=await rpc('ip',{id:data.id,actor:user.id});if(!row.cipher)return json({error:'IP 未提供或已超過 30 天保存期限'},404);
+    const row=await rpc('ip',{id:data.id,actor:user.id});if(!row.cipher)return json({error:'此筆紀錄未提供 IP'},404);
     return json({ip:await decryptIP(env.ANALYTICS_SECRET,row.cipher)});
    }
    return json({error:'找不到此功能'},404);
-  }catch(e){const code=e instanceof Error?e.message:'';if(code==='bad_dates')return json({error:'日期需在最近 90 天內'},400);if(code==='bad_body')return json({error:'資料格式錯誤'},400);if(code==='body_too_large')return json({error:'資料過長'},413);return json({error:'服務暫時無法使用，請稍後重試'},500);}
+  }catch(e){const code=e instanceof Error?e.message:'';if(code==='bad_dates')return json({error:'日期需有效，且不可晚於今天'},400);if(code==='bad_body')return json({error:'資料格式錯誤'},400);if(code==='body_too_large')return json({error:'資料過長'},413);return json({error:'服務暫時無法使用，請稍後重試'},500);}
  };
 }
+

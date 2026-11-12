@@ -13,6 +13,7 @@ assert.equal(isPublicKey(''),false);
 const db=new PGlite();
 await db.exec('create role anon; create role authenticated; create role service_role bypassrls;');
 await db.exec(await readFile(new URL('../supabase/migrations/202611120001_analytics.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/202611120002_keep_analytics_history.sql',import.meta.url),'utf8'));
 for(const role of ['anon','authenticated']){
  await db.exec('set role '+role);
  await assert.rejects(()=>db.query("select public.analytics_rpc('stats','{}')"),/permission denied/);
@@ -64,17 +65,28 @@ assert(!JSON.stringify(records).includes('203.0.113.24'));assert(!JSON.stringify
 assert.equal((await (await call('records?q=203.0.113','GET',undefined,admin)).json()).total,3);
 assert.equal((await (await call('records?device=tablet','GET',undefined,admin)).json()).total,0);
 assert.equal((await call('records?page=1.5','GET',undefined,admin)).status,400);
-assert.equal((await call('stats?from=2020-01-01','GET',undefined,admin)).status,400);
+assert.equal((await call('stats?from=2020-01-01','GET',undefined,admin)).status,200);
+assert.equal((await call('stats?from=2020-02-30','GET',undefined,admin)).status,400);
+assert.equal((await call('stats?from=1999-01-01','GET',undefined,admin)).status,400);
 assert.equal((await (await call('ip','POST',{id:event.id},admin)).json()).ip,'203.0.113.24');
 const audit=await db.query('select * from analytics_private.audit');assert.equal(audit.rows.length,1);
-await db.query('update analytics_private.events set at=$1 where id=$2',[Date.now()-31*86400000,event.id]);
-assert.equal((await call('ip','POST',{id:event.id},admin)).status,404);
+// Old records and encrypted IP remain readable after reports and new collections.
+const oldAt=Date.now()-3651*86400000,oldDay=taipeiDay(oldAt);
+await db.query('update analytics_private.events set at=$1,day=$2 where id=$3',[oldAt,oldDay,event.id]);
+await db.query('update analytics_private.audit set at=$1',[oldAt]);
+await db.query('update analytics_private.sessions set first_at=$1,last_at=$1',[oldAt]);
+await db.query('insert into analytics_private.daily_visitors(day,visitor) values($1,$2)',[oldDay,'old-visitor']);
+assert.equal((await (await call('ip','POST',{id:event.id},admin)).json()).ip,'203.0.113.24');
 await call('stats','GET',undefined,admin);
-assert.equal((await db.query<{ip_cipher:string}>('select ip_cipher from analytics_private.events where id=$1',[event.id])).rows[0].ip_cipher,null);
-await db.query('update analytics_private.events set at=$1 where id=$2',[Date.now()-91*86400000,event.id]);
-await call('stats','GET',undefined,admin);
-assert.equal((await db.query('select * from analytics_private.events where id=$1',[event.id])).rows.length,0);
-assert.equal((await (await call('stats','GET',undefined,admin)).json()).all.views,3);
+const oldRows=await (await call('records?from='+oldDay+'&to='+oldDay,'GET',undefined,admin)).json();
+assert.equal(oldRows.total,1);assert.equal(oldRows.rows[0].ipAvailable,1);
+assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket()})).status,200);
+assert((await db.query<{ip_cipher:string}>('select ip_cipher from analytics_private.events where id=$1',[event.id])).rows[0].ip_cipher);
+assert.equal((await db.query('select * from analytics_private.audit where at=$1',[oldAt])).rows.length,1);
+assert.equal((await db.query('select * from analytics_private.sessions where first_at=$1',[oldAt])).rows.length,2);
+assert.equal((await db.query('select * from analytics_private.daily_visitors where day=$1',[oldDay])).rows.length,1);
+assert.equal((await (await call('stats','GET',undefined,admin)).json()).all.views,4);
 await assert.rejects(()=>rpc('unsupported',{}),/Unsupported action/);
 await db.close();
-console.log('PASS: Postgres migration, anon/authenticated denial, owner auth/pinning, consent, ticket replay, atomic unique counts, encryption/masking, retention, search and filters.');
+console.log('PASS: Postgres migration, anon/authenticated denial, owner auth/pinning, consent, ticket replay, atomic unique counts, encryption/masking, persistent history beyond ten years, search and filters.');
+

@@ -4,7 +4,7 @@
 
 公開設定仍為空，訪客收集保持停用；草稿 PR 不應先合併。電腦連線中斷後，需要重新確認最後一次參數儲存結果，再繼續原專案，勿重跑初始 migration。
 
-資料保留政策尚待網站擁有者確認。定期清理排程未啟用；既有 RPC 的 collect/stats 也含過期清理邏輯，取得保存期限的明確決定之前不得啟用收集或以其他路徑執行相同清理。確定政策後，須同步更新資料庫、程式與介面說明，再進行正式測試。
+網站擁有者已於 2026-11-12 明確指定：完整 IP、瀏覽明細與累計人數全部持續保留。更新 migration 移除 IP／明細／稽核／工作階段／每日訪客索引的到期清理，歷史查詢不再限於最近 90 天。僅短效防濫用計數器會清理；不建立刪除訪客歷史的 Cron 工作。
 
 ## 架構
 
@@ -18,7 +18,7 @@
 ## 完成帳號與正式連接
 
 1. 由網站擁有者在 Supabase 官方介面登入，建立專用專案；不要把密碼或登入驗證碼貼到對話。
-2. 執行 `supabase/migrations/202611120001_analytics.sql`。資料表位於 `analytics_private`，`anon` 與 `authenticated` 沒有讀表或執行 RPC 的權限。
+2. 新專案依序執行 `supabase/migrations/202611120001_analytics.sql` 與 `202611120002_keep_analytics_history.sql`；已完成初始 migration 的專案只執行第二份更新。資料表位於 `analytics_private`，`anon` 與 `authenticated` 沒有讀表或執行 RPC 的權限。
 3. 在 Supabase Auth 啟用 Google provider。建立 Google OAuth Web client，把 Supabase 顯示的 callback URL 加到 Google Cloud；client secret 僅填入 Supabase，不放進 GitHub。
 4. Supabase Auth 的 Site URL 與允許回跳網址設定為 `https://tutminchai.github.io/minchaihsieh/admin/`，不使用萬用字元。正式啟用前確認 Google OAuth 發布狀態與獲准使用者。
 5. Edge Function 設定 `ADMIN_EMAIL` 為擁有者確認的 Google 登入 email，並安全產生至少 32 字元的 `ANALYTICS_SECRET`。Supabase 自動提供其標準 URL、anon key 及 service-role key 環境變數；所有高權限金鑰僅能留在伺服器。不要任意輪替加密密鑰，否則既有加密 IP 會無法讀取。
@@ -33,13 +33,14 @@
 - 確認 Supabase gateway 實際傳入可信的 `cf-connecting-ip`，不能接受訪客偽造同名標頭。未確認前不得宣稱完整 IP 功能已可用；無可信 IP 時顯示無資料。
 - 國家只取已驗證 gateway 的 `cf-ipcountry`，不是瀏覽器語系或伺服器所在地。城市／縣市目前留空，不猜測。若要求城市資料，需另外評估並接入可信 IP 定位來源。
 - 驗證預設列表及 CSV 僅遮罩 IP，完整 IP 只能由管理者單筆查看且留下存取紀錄。
-- 目前存取路徑會限制完整 IP 查詢為 30 天內，明細為 90 天內；寫入與報表查詢同時執行清理。正式上線前，須以 Supabase Cron 加上每日清理工作，確保無流量時也如期移除儲存資料。工作內容：清空 30 天前 `events.ip_cipher`、刪除 90 天前 events／audit／sessions、移除過期 rates 與 90 個曆日前的 daily_visitors。匿名累計統計保留。
+- 完整 IP 加密持續保存；瀏覽明細、稽核、工作階段與匿名累計亦持續保留。後台可選全部或自訂歷史日期。訪客同意說明須如實呈現無自動到期期限，撤回只停止未來收集，不會自動刪除既有資料。不得建立自動刪除歷史紀錄的排程。
 - 通過正式測試後才將 `enabled` 設為 `true`，合併發佈 `/admin/` 與前台入口。若測試未通過，保持停用；舊版後台不必刪除。
 
 ## 本機驗證範圍
 
-`npm test` 使用 PGlite 執行實際 PostgreSQL migration，檢查資料庫權限、重複事件與原子計數、登入拒絕、管理者固定、IP 加密遮罩、保留期限及篩選。Auth 網路回覆在本機測試中模擬；不能取代真實 OAuth、部署權限及 gateway 資料測試。
+`npm test` 使用 PGlite 執行實際 PostgreSQL migration，檢查資料庫權限、重複事件與原子計數、登入拒絕、管理者固定、IP 加密遮罩、超過十年的歷史 IP／明細持續可查及篩選。Auth 網路回覆在本機測試中模擬；不能取代真實 OAuth、部署權限及 gateway 資料測試。
 
 ## 更新
 
 修改 `admin-src/` 後必須重新建置並一起提交 `admin/`。公開主頁仍為既有 `index.html`、`en.html`，本工具不重新產生個人履歷內容。英文頁沿用 `tools/build-english.py`，由中文頁保留管理者入口及追蹤程式標籤。
+
