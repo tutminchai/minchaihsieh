@@ -343,3 +343,9 @@ html[lang="en"] .archive-record p{font-size:16px;line-height:1.6}
 }
 @media(max-width:360px){html[lang="en"] .brand-name{font-size:15px}html[lang="en"] .brand-emblem{width:32px;height:32px}}
 
+
+/* Discreet management entry in the bilingual footer. */
+.footer-links{display:flex;align-items:center;flex-wrap:wrap;gap:20px}
+.footer-links .admin-login{font-size:13px;line-height:1.5;min-height:44px;display:inline-flex;align-items:center;gap:5px;color:var(--muted)}
+.footer-links .admin-login:hover{color:var(--red);text-decoration:underline;text-underline-offset:4px}
+@media(max-width:600px){.site-footer .footer-links{width:100%;justify-content:space-between;gap:16px}}
