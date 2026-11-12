@@ -30,9 +30,9 @@ const handler=createHandler({SUPABASE_URL:'https://testproject.supabase.co',SUPA
  if(token==='Bearer other-user')return Response.json({id:other,email:'other@example.com',email_confirmed_at:'2026-01-01T00:00:00Z'});
  if(token==='Bearer unconfirmed')return Response.json({id:owner,email:'owner@example.com',email_confirmed_at:null});
  return Response.json({error:'invalid'}, {status:401});
- }) as typeof fetch});
+ }) as typeof fetch,countryLookup:async()=> 'TW'});
 const origin='https://tutminchai.github.io';
-const publicHeaders={'Origin':origin,'Referer':origin+'/minchaihsieh/','User-Agent':'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0','cf-connecting-ip':'203.0.113.24','cf-ipcountry':'TW'};
+const publicHeaders={'Origin':origin,'Referer':origin+'/minchaihsieh/','User-Agent':'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0','cf-connecting-ip':'203.0.113.24','cf-ipcountry':'US'};
 async function call(path:string,method='GET',data?:any,extra:Record<string,string>={}){return handler(new Request('https://testproject.supabase.co/functions/v1/analytics/api/'+path,{method,headers:{...publicHeaders,...extra},...(data!==undefined?{body:typeof data==='string'?data:JSON.stringify(data)}:{})}));}
 const admin={Authorization:'Bearer valid-admin'};
 // Exercise both the public gateway URL and the actual hosted function path.
@@ -67,6 +67,7 @@ const stats=await (await call('stats','GET',undefined,admin)).json();
 assert.equal(stats.all.views,3);assert.equal(stats.all.visitors,2);assert.equal(stats.period.visitors,2);assert.equal(stats.trend[0].visitors,2);
 const records=await (await call('records','GET',undefined,admin)).json();
 assert.equal(records.total,3);assert.equal(records.rows[0].ipMasked,'203.0.113.*');assert.equal(records.rows[0].city,'');assert.equal(records.rows[0].referrer,'example.com');
+assert.equal(records.rows[0].country,'TW'); // Country header is ignored in favor of the local database.
 assert(!JSON.stringify(records).includes('203.0.113.24'));assert(!JSON.stringify(records).includes('cipher'));
 assert.equal((await (await call('records?q=203.0.113','GET',undefined,admin)).json()).total,3);
 assert.equal((await (await call('records?device=tablet','GET',undefined,admin)).json()).total,0);

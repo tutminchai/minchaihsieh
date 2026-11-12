@@ -1,6 +1,6 @@
 import {ORIGIN,PATHS,taipeiDay,validUUID,clientIP,maskIP,deviceInfo,hash,key,b64,unb64,encryptIP,decryptIP} from './crypto.ts';
 export type Env={SUPABASE_URL:string;SUPABASE_ANON_KEY:string;SUPABASE_SERVICE_ROLE_KEY:string;ADMIN_EMAIL:string;ANALYTICS_SECRET:string};
-type Dependencies={fetcher?:typeof fetch;rpc?:(action:string,data:Record<string,unknown>)=>Promise<any>};
+type Dependencies={fetcher?:typeof fetch;rpc?:(action:string,data:Record<string,unknown>)=>Promise<any>;countryLookup?:(ip:string)=>Promise<string>};
 const DAY=86400000,enc=new TextEncoder();
 const headers={'Cache-Control':'private, no-store','Content-Type':'application/json; charset=utf-8','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow'};
 const cors={'Access-Control-Allow-Origin':ORIGIN,'Vary':'Origin','Access-Control-Allow-Headers':'authorization, apikey, content-type','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Max-Age':'600'};
@@ -46,11 +46,9 @@ export function createHandler(env:Env,deps:Dependencies={}){
     const visitor=await hash(env.ANALYTICS_SECRET,'visitor:'+data.visitor),session=await hash(env.ANALYTICS_SECRET,'session:'+data.session);
     if(!await rate('v:'+visitor,30))return json({error:'請稍後重試'},429);
     let referrer='';try{const r=new URL(data.referrer);if(/^https?:$/.test(r.protocol)&&r.origin!==ORIGIN)referrer=r.hostname.slice(0,150);}catch{}
-    // Supabase gateway supplies the client IP. Never accept IP/geo fields from body,
-    // X-Forwarded-For, deployment region or locale. Country is kept only if supplied
-    // by the gateway; city/region remain empty until forwarding is verified live.
-    const cfCountry=req.headers.get('cf-ipcountry')||'';
-    const country=ip&&/^[A-Z]{2}$/.test(cfCountry)&&cfCountry!=='XX'?cfCountry:'';
+    // Use only the gateway IP and a server-local country database. Browser locale,
+    // request country headers and supplied IP/geo body fields are never trusted.
+    let country='';if(ip&&deps.countryLookup){try{const code=await deps.countryLookup(ip);if(/^[A-Z]{2}$/.test(code)&&!['XX','ZZ'].includes(code))country=code;}catch{/* Missing location must not prevent a visit from being recorded. */}}
     await rpc('collect',{id:data.id,ticket:ticket.nonce,visitor,session,path:data.path,referrer,...deviceInfo(ua,{touch:Number(data.touch)||0,mobile:data.mobile===true}),country,region:'',city:'',ipMasked:maskIP(ip),ipCipher:ip?await encryptIP(env.ANALYTICS_SECRET,ip):null});
     return json({ok:true});
    }

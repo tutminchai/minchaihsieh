@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {createCountryLookup} from '../supabase/functions/analytics/country.ts';
+const urls:string[]=[];let reads=0;
+const country=createCountryLookup({reader:()=>({get:ip=>({country:{iso_code:ip.includes(':')?'JP':'TW'}})}),fetcher:(async(url:any)=>{urls.push(String(url));reads++;return new Response(new Uint8Array(1024));}) as typeof fetch});
+assert.equal(await country('bad-ip'),'');assert.equal(reads,0);
+assert.deepEqual(await Promise.all([country('203.0.113.12'),country('203.0.113.13')]),['TW','TW']);
+assert.equal(reads,1);assert.equal(await country('2001:db8::1'),'JP');assert.equal(reads,2);
+assert(urls.every(url=>/^https:\/\/github.com\/sapics\/ip-location-db\/releases\/download\/latest\/user-country-ipv[46]\.mmdb$/.test(url)));
+assert(!urls.some(url=>url.includes('203.0.113')||url.includes('2001:db8')));
+let failures=0;
+const unavailable=createCountryLookup({reader:()=>{throw Error('must not parse')},fetcher:(async()=>{failures++;return new Response('unavailable',{status:503});}) as typeof fetch});
+assert.equal(await unavailable('203.0.113.12'),'');assert.equal(await unavailable('203.0.113.13'),'');assert.equal(failures,1);
+const invalid=createCountryLookup({reader:()=>({get:()=>({country:{iso_code:'invalid'}})}),fetcher:(async()=>new Response(new Uint8Array(1024))) as typeof fetch});
+assert.equal(await invalid('203.0.113.12'),'');
+const oversized=createCountryLookup({reader:()=>{throw Error('must not parse')},fetcher:(async()=>new Response(new Uint8Array(1024),{headers:{'content-length':String(20*1024*1024)}})) as typeof fetch});
+assert.equal(await oversized('203.0.113.12'),'');
+console.log('PASS: country lookup cache, IPv4/IPv6, bounded downloads, unavailable data, valid ISO codes, no visitor IP transmitted to the data publisher.');
