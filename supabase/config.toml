@@ -1,0 +1,4 @@
+[functions.analytics]
+# Keep the gateway check enabled. Public collection sends the browser-safe
+# publishable key; admin routes also verify the user with Auth and the owner allowlist.
+verify_jwt = true

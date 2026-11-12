@@ -1,0 +1,98 @@
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {PGlite} from '@electric-sql/pglite';
+import {createHandler} from '../supabase/functions/analytics/core.ts';
+import {taipeiDay} from '../supabase/functions/analytics/crypto.ts';
+import {isPublicKey} from '../admin-src/public-config.ts';
+const jwt=(role:string)=>'eyJhbGciOiJIUzI1NiJ9.'+Buffer.from(JSON.stringify({role,iss:'supabase'})).toString('base64url')+'.signature';
+assert.equal(isPublicKey('sb_publishable_example_1234567890123456'),true);
+assert.equal(isPublicKey(jwt('anon')),true);
+assert.equal(isPublicKey(jwt('service_role')),false);
+assert.equal(isPublicKey('sb_secret_example_1234567890123456'),false);
+assert.equal(isPublicKey(''),false);
+const db=new PGlite();
+await db.exec('create role anon; create role authenticated; create role service_role bypassrls;');
+await db.exec(await readFile(new URL('../supabase/migrations/202611120001_analytics.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/202611120002_keep_analytics_history.sql',import.meta.url),'utf8'));
+for(const role of ['anon','authenticated']){
+ await db.exec('set role '+role);
+ await assert.rejects(()=>db.query("select public.analytics_rpc('stats','{}')"),/permission denied/);
+ await assert.rejects(()=>db.query('select * from analytics_private.events'),/permission denied/);
+ await db.exec('reset role');
+}
+async function rpc(action:string,data:any){return db.transaction(async tx=>{await tx.exec('set local role service_role');const r=await tx.query<{value:any}>('select public.analytics_rpc($1,$2::jsonb) as value',[action,JSON.stringify(data)]);return r.rows[0].value;});}
+await rpc('rate',{key:'expired-test',expires:Date.now()-10000,limit:1});
+assert.equal((await rpc('rate',{key:'expired-test',expires:Date.now()+60000,limit:1})).allowed,true);
+const owner=crypto.randomUUID(),other=crypto.randomUUID();let ownerIdentity=owner;
+const handler=createHandler({SUPABASE_URL:'https://testproject.supabase.co',SUPABASE_ANON_KEY:'public-test-key',SUPABASE_SERVICE_ROLE_KEY:'server-test-key',ADMIN_EMAIL:'owner@example.com',ANALYTICS_SECRET:'not-a-real-production-secret-for-test-only'},{rpc,fetcher:(async(_u:any,opt:any)=>{
+ const token=new Headers(opt?.headers).get('authorization');
+ if(token==='Bearer valid-admin')return Response.json({id:ownerIdentity,email:'owner@example.com',email_confirmed_at:'2026-01-01T00:00:00Z'});
+ if(token==='Bearer other-user')return Response.json({id:other,email:'other@example.com',email_confirmed_at:'2026-01-01T00:00:00Z'});
+ if(token==='Bearer unconfirmed')return Response.json({id:owner,email:'owner@example.com',email_confirmed_at:null});
+ return Response.json({error:'invalid'}, {status:401});
+ }) as typeof fetch});
+const origin='https://tutminchai.github.io';
+const publicHeaders={'Origin':origin,'Referer':origin+'/minchaihsieh/','User-Agent':'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0','cf-connecting-ip':'203.0.113.24','cf-ipcountry':'TW'};
+async function call(path:string,method='GET',data?:any,extra:Record<string,string>={}){return handler(new Request('https://testproject.supabase.co/functions/v1/analytics/api/'+path,{method,headers:{...publicHeaders,...extra},...(data!==undefined?{body:typeof data==='string'?data:JSON.stringify(data)}:{})}));}
+const admin={Authorization:'Bearer valid-admin'};
+// Exercise both the public gateway URL and the actual hosted function path.
+for(const prefix of ['/analytics','/functions/v1/analytics']){
+ const ticketResponse=await handler(new Request('https://testproject.supabase.co'+prefix+'/api/ticket',{headers:publicHeaders}));
+ assert.equal(ticketResponse.status,200);assert.equal(typeof (await ticketResponse.json()).ticket,'string');
+ assert.equal((await handler(new Request('https://testproject.supabase.co'+prefix+'/api/stats',{headers:publicHeaders}))).status,401);
+}
+assert.equal((await call('stats')).status,401);
+assert.equal((await call('stats','GET',undefined,{'oai-authenticated-user-id':owner,'oai-authenticated-user-email':'owner@example.com'})).status,401);
+assert.equal((await call('stats','GET',undefined,{Authorization:'Bearer other-user'})).status,403);
+assert.equal((await call('stats','GET',undefined,{Authorization:'Bearer unconfirmed'})).status,403);
+assert.equal((await call('stats','GET',undefined,{Authorization:'Bearer forged'})).status,401);
+assert.equal((await call('ticket','GET',undefined,{Origin:'https://evil.example'})).status,403);
+assert.equal((await (await call('ticket','GET',undefined,{DNT:'1'})).json()).ignored,true);
+assert.equal((await (await call('ticket','GET',undefined,{'Sec-GPC':'1'})).json()).ignored,true);
+assert.equal((await call('me','GET',undefined,admin)).status,200);
+ownerIdentity=crypto.randomUUID();assert.equal((await call('me','GET',undefined,admin)).status,403);ownerIdentity=owner;
+const visitor=crypto.randomUUID(),session=crypto.randomUUID();
+async function ticket(){const r=await call('ticket');assert.equal(r.status,200);return (await r.json()).ticket;}
+const event={id:crypto.randomUUID(),visitor,session,ticket:await ticket(),consent:true,path:'/minchaihsieh/',referrer:'https://example.com/private?token=secret',ip:'1.2.3.4',city:'forged'};
+assert.equal((await call('collect','POST',event)).status,200);
+assert.equal((await call('collect','POST',event)).status,200);
+assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID()})).status,200);
+assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket()})).status,200);
+assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket(),visitor:crypto.randomUUID(),session:crypto.randomUUID(),path:'/minchaihsieh/en.html'})).status,200);
+assert.equal((await call('collect','POST',{...event,consent:false})).status,400);
+assert.equal((await call('collect','POST',{...event,path:'/other/'})).status,400);
+assert.equal((await call('collect','POST',{...event,ticket:'bad.signature'})).status,403);
+assert.equal((await call('collect','POST','x'.repeat(2050))).status,413);
+const stats=await (await call('stats','GET',undefined,admin)).json();
+assert.equal(stats.all.views,3);assert.equal(stats.all.visitors,2);assert.equal(stats.period.visitors,2);assert.equal(stats.trend[0].visitors,2);
+const records=await (await call('records','GET',undefined,admin)).json();
+assert.equal(records.total,3);assert.equal(records.rows[0].ipMasked,'203.0.113.*');assert.equal(records.rows[0].city,'');assert.equal(records.rows[0].referrer,'example.com');
+assert(!JSON.stringify(records).includes('203.0.113.24'));assert(!JSON.stringify(records).includes('cipher'));
+assert.equal((await (await call('records?q=203.0.113','GET',undefined,admin)).json()).total,3);
+assert.equal((await (await call('records?device=tablet','GET',undefined,admin)).json()).total,0);
+assert.equal((await call('records?page=1.5','GET',undefined,admin)).status,400);
+assert.equal((await call('stats?from=2020-01-01','GET',undefined,admin)).status,200);
+assert.equal((await call('stats?from=2020-02-30','GET',undefined,admin)).status,400);
+assert.equal((await call('stats?from=1999-01-01','GET',undefined,admin)).status,400);
+assert.equal((await (await call('ip','POST',{id:event.id},admin)).json()).ip,'203.0.113.24');
+const audit=await db.query('select * from analytics_private.audit');assert.equal(audit.rows.length,1);
+// Old records and encrypted IP remain readable after reports and new collections.
+const oldAt=Date.now()-3651*86400000,oldDay=taipeiDay(oldAt);
+await db.query('update analytics_private.events set at=$1,day=$2 where id=$3',[oldAt,oldDay,event.id]);
+await db.query('update analytics_private.audit set at=$1',[oldAt]);
+await db.query('update analytics_private.sessions set first_at=$1,last_at=$1',[oldAt]);
+await db.query('insert into analytics_private.daily_visitors(day,visitor) values($1,$2)',[oldDay,'old-visitor']);
+assert.equal((await (await call('ip','POST',{id:event.id},admin)).json()).ip,'203.0.113.24');
+await call('stats','GET',undefined,admin);
+const oldRows=await (await call('records?from='+oldDay+'&to='+oldDay,'GET',undefined,admin)).json();
+assert.equal(oldRows.total,1);assert.equal(oldRows.rows[0].ipAvailable,1);
+assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket()})).status,200);
+assert((await db.query<{ip_cipher:string}>('select ip_cipher from analytics_private.events where id=$1',[event.id])).rows[0].ip_cipher);
+assert.equal((await db.query('select * from analytics_private.audit where at=$1',[oldAt])).rows.length,1);
+assert.equal((await db.query('select * from analytics_private.sessions where first_at=$1',[oldAt])).rows.length,2);
+assert.equal((await db.query('select * from analytics_private.daily_visitors where day=$1',[oldDay])).rows.length,1);
+assert.equal((await (await call('stats','GET',undefined,admin)).json()).all.views,4);
+await assert.rejects(()=>rpc('unsupported',{}),/Unsupported action/);
+await db.close();
+console.log('PASS: Postgres migration, anon/authenticated denial, owner auth/pinning, consent, ticket replay, atomic unique counts, encryption/masking, persistent history beyond ten years, search and filters.');
+
