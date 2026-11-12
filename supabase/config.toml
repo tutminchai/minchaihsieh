@@ -1,0 +1,4 @@
+[functions.analytics]
+# Public ticket/collect routes are validated in core.ts. Every admin route
+# independently verifies the user JWT with Supabase Auth and the owner allowlist.
+verify_jwt = false
