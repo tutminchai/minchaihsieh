@@ -1,12 +1,12 @@
 (() => {
   'use strict';
   const cfg=window.MH_ANALYTICS;
-  if(!cfg||cfg.enabled!==true||!/^https:\/\/[a-z0-9]+\.supabase\.co\/functions\/v1\/analytics$/.test(cfg.endpoint))return;
+  if(!cfg||cfg.enabled!==true||!/^https:\/\/[a-z0-9]+\.supabase\.co\/functions\/v1\/analytics$/.test(cfg.endpoint)||!/^sb_publishable_[A-Za-z0-9_-]{16,}$/.test(cfg.publishableKey))return;
   const ENDPOINT=cfg.endpoint;
   const CONSENT='mh_analytics_consent_v1', VISITOR='mh_analytics_visitor_v1', SESSION='mh_analytics_session_v1';
   const en=document.documentElement.lang==='en';
   const txt=en?{
-    title:'Website statistics',intro:'May this site record anonymous visit statistics?',summary:'With your permission, visit time, approximate region, device, pages and IP address are recorded. Only the site owner can view them.',
+    title:'Website statistics',intro:'May this site record visit statistics?',summary:'With your permission, visit time, approximate region, device, pages and IP address are recorded. Only the site owner can view them.',
     allow:'Allow statistics',deny:'Do not allow',details:'Privacy details',settings:'Statistics & privacy',close:'Close',saved:'Your preference has been saved.',blocked:'Your browser has enabled Do Not Track or Global Privacy Control. Statistics are disabled.',
     policy:'Visits are recorded only after you agree. A random browser ID is stored on your device to estimate unique visitors; it does not identify your name. Full IP addresses are encrypted. IP addresses, visit details, daily totals and the pseudonymous visitor index are retained without an automatic expiry date and are accessible only to the site owner. Available network location is approximate, not your precise address; some locations may be unavailable. No GPS, message contents or search parameters are collected. Data is processed by this site’s private analytics service hosted on Supabase. You may withdraw permission here at any time; this stops future collection and removes the analytics ID from this browser; previously recorded data remains stored. Contact: shiehminchai@gmail.com.',
     status:'Current preference: ',yes:'Statistics allowed',no:'Statistics disabled',unset:'Not selected'
@@ -25,10 +25,10 @@
     }catch{return;}
     sent=true;controller=new AbortController();
     try{
-      const r=await fetch(ENDPOINT+'/api/ticket',{mode:'cors',credentials:'omit',cache:'no-store',signal:controller.signal});if(!r.ok)return;
+      const r=await fetch(ENDPOINT+'/api/ticket',{mode:'cors',credentials:'omit',cache:'no-store',signal:controller.signal,headers:{apikey:cfg.publishableKey}});if(!r.ok)return;
       const d=await r.json();if(!d.ticket||withdrawn||consent()!=='yes'||protectedBrowser())return;
       let referrer='';try{referrer=new URL(document.referrer).origin;}catch{}
-      await fetch(ENDPOINT+'/api/collect',{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',signal:controller.signal,headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({ticket:d.ticket,id:crypto.randomUUID(),visitor,session,path:location.pathname,referrer,consent:true,touch:navigator.maxTouchPoints||0,mobile:navigator.userAgentData?.mobile===true})});
+      await fetch(ENDPOINT+'/api/collect',{method:'POST',mode:'cors',credentials:'omit',cache:'no-store',signal:controller.signal,headers:{apikey:cfg.publishableKey,'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({ticket:d.ticket,id:crypto.randomUUID(),visitor,session,path:location.pathname,referrer,consent:true,touch:navigator.maxTouchPoints||0,mobile:navigator.userAgentData?.mobile===true})});
     }catch{/* Browsing remains available if statistics cannot be reached. */}
   }
   function choose(value){
