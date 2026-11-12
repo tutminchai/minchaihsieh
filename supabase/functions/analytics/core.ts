@@ -28,7 +28,8 @@ export function createHandler(env:Env,deps:Dependencies={}){
    if(req.headers.get('origin')!==ORIGIN)return json({error:'來源不符'},403);
    if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{...headers,...cors}});
    if(!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(env.SUPABASE_URL)||!env.SUPABASE_ANON_KEY||!env.SUPABASE_SERVICE_ROLE_KEY||!env.ADMIN_EMAIL||env.ANALYTICS_SECRET.length<32)return json({error:'後台尚未設定完成'},503);
-   const url=new URL(req.url),path=url.pathname.replace(/^\/functions\/v1\/analytics/,'');
+   // Hosted requests keep the function-name prefix after /functions/v1 is stripped.
+   const url=new URL(req.url),path=url.pathname.replace(/^(?:\/functions\/v1)?\/analytics(?=\/|$)/,'');
    const ip=clientIP(req),ua=(req.headers.get('user-agent')||'').slice(0,512);
    if(path==='/api/ticket'&&req.method==='GET'){
     if(!source(req))return json({error:'來源不符'},403);if(ignored(req))return json({ignored:true});

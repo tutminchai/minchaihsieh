@@ -1,8 +1,8 @@
 # GitHub Pages 訪客後台
 
-狀態（2026-11-12）：Supabase 免費專案已建立。初始資料庫 migration 成功執行，已確認 8 張資料表啟用 RLS，anon 與 authenticated 都無 analytics_rpc 的 EXECUTE 權限。Edge Function 已部署，但登入及公開設定尚未完成，也尚未通過正式串接測試。
+狀態（2026-11-12）：資料庫與持續保留 migration 已完成，8 張資料表啟用 RLS，anon 與 authenticated 無 analytics_rpc 的 EXECUTE 權限。Google OAuth 已由擁有者建立並填入 Supabase，已透過公開 Auth 設定確認 Google provider 啟用；管理者 email 亦已依擁有者確認更新。公開連線設定已填妥，尚未完成真實登入測試。
 
-公開設定仍為空，訪客收集保持停用；草稿 PR 不應先合併。電腦連線中斷後，需要重新確認最後一次參數儲存結果，再繼續原專案，勿重跑初始 migration。
+訪客收集保持停用，草稿 PR 尚未合併。正式探測發現 gateway 送入函式的路徑是 /analytics/api/...；已保存的程式修正兼容外部與內部路徑，並加入回歸測試。tracker 仍待加入公開 publishable key header；此部分尚未提交。電腦與瀏覽器連線中斷，尚未執行新增測試、部署此修正或進行瀏覽器驗證。恢復連線後繼續既有專案，不重建憑證、不重跑初始 migration。
 
 網站擁有者已於 2026-11-12 明確指定：完整 IP、瀏覽明細與累計人數全部持續保留。更新 migration 移除 IP／明細／稽核／工作階段／每日訪客索引的到期清理，歷史查詢不再限於最近 90 天。僅短效防濫用計數器會清理；不建立刪除訪客歷史的 Cron 工作。
 
@@ -22,7 +22,7 @@
 3. 在 Supabase Auth 啟用 Google provider。建立 Google OAuth Web client，把 Supabase 顯示的 callback URL 加到 Google Cloud；client secret 僅填入 Supabase，不放進 GitHub。
 4. Supabase Auth 的 Site URL 與允許回跳網址設定為 `https://tutminchai.github.io/minchaihsieh/admin/`，不使用萬用字元。正式啟用前確認 Google OAuth 發布狀態與獲准使用者。
 5. Edge Function 設定 `ADMIN_EMAIL` 為擁有者確認的 Google 登入 email，並安全產生至少 32 字元的 `ANALYTICS_SECRET`。Supabase 自動提供其標準 URL、anon key 及 service-role key 環境變數；所有高權限金鑰僅能留在伺服器。不要任意輪替加密密鑰，否則既有加密 IP 會無法讀取。
-6. 部署 `analytics` function，採用 `supabase/config.toml`。`verify_jwt=false` 是為了接收匿名訪客的同意後寫入；每個管理者 API 都在程式內向 Auth 驗證 bearer token、已確認 email 與固定 user ID。第一次合法管理者登入會固定其 user ID。
+6. 部署 `analytics` function，採用 `supabase/config.toml`。Dashboard 目前保持 gateway 驗證開啟；實測不帶 key 的請求被 gateway 拒絕、帶公開 publishable key 的請求可到達函式。repo 中 config.toml 仍是先前的停用設定，部署前須先確認並同步；tracker 尚待加入公開 key header。每個管理者 API 仍在程式內向 Auth 驗證 bearer token、已確認 email 與固定 user ID。正式登入時需驗證 gateway 對目前 Auth JWT 的相容性，不能僅以公開 key 當作管理者權限。第一次合法管理者登入會固定其 user ID。
 7. 在 `admin-src/config.ts` 填專案 URL 與 **publishable key 或 legacy anon key**，不能使用 secret／service-role key。執行 `npm ci`、`npm run check`、`npm test`、`npm run build`。建置會拒絕高權限金鑰。
 8. `analytics-config.js` 填入 `https://<project-ref>.supabase.co/functions/v1/analytics`，仍保留 `enabled:false`，直到下列正式測試全部通過。
 

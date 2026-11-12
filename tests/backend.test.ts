@@ -35,6 +35,12 @@ const origin='https://tutminchai.github.io';
 const publicHeaders={'Origin':origin,'Referer':origin+'/minchaihsieh/','User-Agent':'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0','cf-connecting-ip':'203.0.113.24','cf-ipcountry':'TW'};
 async function call(path:string,method='GET',data?:any,extra:Record<string,string>={}){return handler(new Request('https://testproject.supabase.co/functions/v1/analytics/api/'+path,{method,headers:{...publicHeaders,...extra},...(data!==undefined?{body:typeof data==='string'?data:JSON.stringify(data)}:{})}));}
 const admin={Authorization:'Bearer valid-admin'};
+// Exercise both the public gateway URL and the actual hosted function path.
+for(const prefix of ['/analytics','/functions/v1/analytics']){
+ const ticketResponse=await handler(new Request('https://testproject.supabase.co'+prefix+'/api/ticket',{headers:publicHeaders}));
+ assert.equal(ticketResponse.status,200);assert.equal(typeof (await ticketResponse.json()).ticket,'string');
+ assert.equal((await handler(new Request('https://testproject.supabase.co'+prefix+'/api/stats',{headers:publicHeaders}))).status,401);
+}
 assert.equal((await call('stats')).status,401);
 assert.equal((await call('stats','GET',undefined,{'oai-authenticated-user-id':owner,'oai-authenticated-user-email':'owner@example.com'})).status,401);
 assert.equal((await call('stats','GET',undefined,{Authorization:'Bearer other-user'})).status,403);
