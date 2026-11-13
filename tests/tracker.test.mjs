@@ -25,7 +25,7 @@ for(const lang of ['zh-Hant','en']){
  assert.equal(payload.collection,'automatic-v1');assert(!('consent' in payload));
  assert.equal(payload.referrer,'https://example.com');assert.equal(app.localStorage.getItem(legacy),null);assert.equal(app.localStorage.getItem(preference),null);
  assert.equal(app.elements.filter(x=>x.tag==='dialog').length,0,'no automatic popup');
- assert.equal(app.footer.children[0].tag,'a');assert.equal(app.footer.children[0].href,'./privacy.html');
+ assert.equal(app.footer.children.length,0,'tracker adds no footer links');
  assert.equal(app.elements.filter(x=>x.tag==='button').length,0,'no consent or preference buttons');
 }
 for(const options of [{dnt:true},{gpc:true},{entries:{[legacy]:JSON.stringify({value:'no',until:0})}},{entries:{[preference]:'no'}},{path:'/minchaihsieh/admin/'}]){
@@ -35,4 +35,4 @@ const previousYes=create({entries:{[legacy]:JSON.stringify({value:'yes',until:0}
 const oldServer=create({oldBackend:true});await settle();assert.equal(oldServer.collects().length,0,'new tracker waits for backend capability');
 const hidden=create({hidden:true});await settle();assert.equal(hidden.requests.length,0);hidden.document.visibilityState='visible';hidden.listeners.visibilitychange();await settle();assert.equal(hidden.collects().length,1);
 const externalStop=create();externalStop.localStorage.setItem(preference,'no');externalStop.listeners.storage({key:preference});await settle();assert.equal(externalStop.collects().length,0,'cross-tab opt-out stops pending collect');
-console.log('PASS: automatic recording, no fabricated consent, no popup, old opt-outs, plain privacy notice, DNT/GPC, hidden tabs, admin exclusion and backend capability guard.');
+console.log('PASS: automatic recording, no fabricated consent, no popup, old opt-outs, no injected footer links, DNT/GPC, hidden tabs, admin exclusion and backend capability guard.');

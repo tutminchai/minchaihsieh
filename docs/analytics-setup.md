@@ -1,6 +1,6 @@
 # GitHub Pages 訪客後台
 
-2026-11-13 自動記錄更新：新訪客不需先按同意，不主動顯示彈窗。移除全部彈窗與同意按鈕；頁尾僅連至一般隱私說明頁，保留既有拒絕選擇及 DNT／GPC；加密、管理者驗證與歷史保留不變。前端以 `collection: automatic-v1` 表示記錄模式，不偽造 `consent: true`。需先部署新版 Edge Function，再發布新版前台；ticket 回覆未帶新版能力標記時，新前端不會送出紀錄。
+2026-11-13 自動記錄更新：新訪客不需先按同意，不主動顯示彈窗。移除全部彈窗與同意按鈕；依網站擁有者要求移除頁尾隱私說明連結，保留既有拒絕選擇及 DNT／GPC；加密、管理者驗證與歷史保留不變。前端以 `collection: automatic-v1` 表示記錄模式，不偽造 `consent: true`。需先部署新版 Edge Function，再發布新版前台；ticket 回覆未帶新版能力標記時，新前端不會送出紀錄。
 
 狀態（2026-11-12）：`/admin/` 已正式發布，中英文首頁頁尾皆提供管理者登入入口。已在正式網址完成擁有者 Google 登入、登出與重新登入；訪客收集已於驗證後啟用。Supabase gateway 驗證維持開啟。
 
@@ -11,7 +11,7 @@
 ## 架構與資料範圍
 
 - `/admin/`：GitHub Pages 上的靜態 React 後台，以 Google 登入，權限由伺服器判定。
-- `analytics.js`：中英文頁自動記錄；頁尾僅提供一般隱私說明頁連結，尊重既有拒絕選擇及 DNT／GPC。
+- `analytics.js`：中英文頁自動記錄；不注入頁尾連結，尊重既有拒絕選擇及 DNT／GPC。
 - Supabase Edge Function：驗證登入、固定管理者身分、限制寫入頻率、遮罩與加密 IP。
 - Supabase PostgreSQL：8 張資料表啟用 RLS，位於 `analytics_private`；瀏覽器的 anon／authenticated 角色不能讀表或執行 `analytics_rpc`。
 - 國家定位：函式下載 sapics/ip-location-db 的 PDDL `user-country` IPv4／IPv6 MMDB 公開資料，於伺服器本地查詢。資料發布端只收到資料庫下載請求，不會收到訪客 IP。資料庫有快取、下載大小限制、逾時與錯誤重試間隔；查詢失敗仍保留瀏覽紀錄，國家顯示未提供。

@@ -32,13 +32,6 @@
     }catch{/* Browsing remains available if statistics cannot be reached. */}
   }
   function init(){
-    const footer=document.querySelector('.footer-links');
-    if(footer){
-      const link=document.createElement('a');
-      link.href='./privacy.html';
-      link.textContent=document.documentElement.lang==='en'?'Privacy notice':'隱私說明';
-      footer.append(link);
-    }
     record();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
