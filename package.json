@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build",
     "check": "tsc --noEmit",
-    "test": "node --experimental-strip-types tests/backend.test.ts && node --experimental-strip-types tests/country.test.ts"
+    "test": "node --experimental-strip-types tests/backend.test.ts && node --experimental-strip-types tests/country.test.ts && node tests/tracker.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.119.0",

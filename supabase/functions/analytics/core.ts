@@ -36,12 +36,14 @@ export function createHandler(env:Env,deps:Dependencies={}){
     const identity=await hash(env.ANALYTICS_SECRET,'rate:'+(ip||ua));
     if(!await rate(identity,60))return json({error:'請稍後重試'},429);
     const payload=b64(enc.encode(JSON.stringify({nonce:crypto.randomUUID(),origin:ORIGIN,identity,exp:Date.now()+300000})));
-    return json({ticket:payload+'.'+await hash(env.ANALYTICS_SECRET,'ticket:'+payload)});
+    return json({ticket:payload+'.'+await hash(env.ANALYTICS_SECRET,'ticket:'+payload),collection:'automatic-v1'});
    }
    if(path==='/api/collect'&&req.method==='POST'){
     if(!source(req))return json({error:'來源不符'},403);if(ignored(req))return json({ignored:true});
     const data=await body(req);
-    if(!data||data.consent!==true||!validUUID(data.id)||!validUUID(data.visitor)||!validUUID(data.session)||!PATHS.has(data.path)||typeof data.ticket!=='string'||data.ticket.length>1000)return json({error:'紀錄格式錯誤'},400);
+    const automatic=data?.collection==='automatic-v1'&&data.consent===undefined;
+    const legacyConsent=data?.collection===undefined&&data?.consent===true;
+    if(!data||(!automatic&&!legacyConsent)||!validUUID(data.id)||!validUUID(data.visitor)||!validUUID(data.session)||!PATHS.has(data.path)||typeof data.ticket!=='string'||data.ticket.length>1000)return json({error:'紀錄格式錯誤'},400);
     let ticket:any;try{const parts=data.ticket.split('.');if(parts.length!==2||!await crypto.subtle.verify('HMAC',await key(env.ANALYTICS_SECRET,'HMAC'),unb64(parts[1]),enc.encode('ticket:'+parts[0])))throw Error();ticket=JSON.parse(new TextDecoder().decode(unb64(parts[0])));if(!validUUID(ticket.nonce)||ticket.origin!==ORIGIN||typeof ticket.exp!=='number'||ticket.exp<Date.now()||ticket.exp>Date.now()+300000||ticket.identity!==await hash(env.ANALYTICS_SECRET,'rate:'+(ip||ua)))throw Error();}catch{return json({error:'紀錄憑證失效'},403);}
     const visitor=await hash(env.ANALYTICS_SECRET,'visitor:'+data.visitor),session=await hash(env.ANALYTICS_SECRET,'session:'+data.session);
     if(!await rate('v:'+visitor,30))return json({error:'請稍後重試'},429);
@@ -78,4 +80,5 @@ export function createHandler(env:Env,deps:Dependencies={}){
   }catch(e){const code=e instanceof Error?e.message:'';if(code==='bad_dates')return json({error:'日期需有效，且不可晚於今天'},400);if(code==='bad_body')return json({error:'資料格式錯誤'},400);if(code==='body_too_large')return json({error:'資料過長'},413);return json({error:'服務暫時無法使用，請稍後重試'},500);}
  };
 }
+
 

@@ -52,14 +52,20 @@ assert.equal((await (await call('ticket','GET',undefined,{'Sec-GPC':'1'})).json(
 assert.equal((await call('me','GET',undefined,admin)).status,200);
 ownerIdentity=crypto.randomUUID();assert.equal((await call('me','GET',undefined,admin)).status,403);ownerIdentity=owner;
 const visitor=crypto.randomUUID(),session=crypto.randomUUID();
-async function ticket(){const r=await call('ticket');assert.equal(r.status,200);return (await r.json()).ticket;}
-const event={id:crypto.randomUUID(),visitor,session,ticket:await ticket(),consent:true,path:'/minchaihsieh/',referrer:'https://example.com/private?token=secret',ip:'1.2.3.4',city:'forged'};
+async function ticket(){const r=await call('ticket');assert.equal(r.status,200);const data=await r.json();assert.equal(data.collection,'automatic-v1');return data.ticket;}
+const event={id:crypto.randomUUID(),visitor,session,ticket:await ticket(),collection:'automatic-v1',path:'/minchaihsieh/',referrer:'https://example.com/private?token=secret',ip:'1.2.3.4',city:'forged'};
 assert.equal((await call('collect','POST',event)).status,200);
 assert.equal((await call('collect','POST',event)).status,200);
 assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID()})).status,200);
 assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket()})).status,200);
 assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket(),visitor:crypto.randomUUID(),session:crypto.randomUUID(),path:'/minchaihsieh/en.html'})).status,200);
 assert.equal((await call('collect','POST',{...event,consent:false})).status,400);
+assert.equal((await call('collect','POST',{...event,collection:undefined})).status,400);
+assert.equal((await call('collect','POST',{...event,collection:'unknown'})).status,400);
+// Cached opt-in clients remain supported; automatic requests never claim consent.
+assert.equal((await call('collect','POST',{...event,collection:undefined,consent:true})).status,200);
+assert.equal((await (await call('collect','POST',event,{DNT:'1'})).json()).ignored,true);
+assert.equal((await (await call('collect','POST',event,{'Sec-GPC':'1'})).json()).ignored,true);
 assert.equal((await call('collect','POST',{...event,path:'/other/'})).status,400);
 assert.equal((await call('collect','POST',{...event,ticket:'bad.signature'})).status,403);
 assert.equal((await call('collect','POST','x'.repeat(2050))).status,413);
@@ -95,5 +101,6 @@ assert.equal((await db.query('select * from analytics_private.daily_visitors whe
 assert.equal((await (await call('stats','GET',undefined,admin)).json()).all.views,4);
 await assert.rejects(()=>rpc('unsupported',{}),/Unsupported action/);
 await db.close();
-console.log('PASS: Postgres migration, anon/authenticated denial, owner auth/pinning, consent, ticket replay, atomic unique counts, encryption/masking, persistent history beyond ten years, search and filters.');
+console.log('PASS: Postgres migration, anon/authenticated denial, owner auth/pinning, automatic collection and legacy compatibility, ticket replay, atomic unique counts, encryption/masking, persistent history beyond ten years, search and filters.');
+
 
