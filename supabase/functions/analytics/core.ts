@@ -51,8 +51,25 @@ export function createHandler(env:Env,deps:Dependencies={}){
     // Use only the gateway IP and a server-local country database. Browser locale,
     // request country headers and supplied IP/geo body fields are never trusted.
     let country='';if(ip&&deps.countryLookup){try{const code=await deps.countryLookup(ip);if(/^[A-Z]{2}$/.test(code)&&!['XX','ZZ'].includes(code))country=code;}catch{/* Missing location must not prevent a visit from being recorded. */}}
-    await rpc('collect',{id:data.id,ticket:ticket.nonce,visitor,session,path:data.path,referrer,...deviceInfo(ua,{touch:Number(data.touch)||0,mobile:data.mobile===true}),country,region:'',city:'',ipMasked:maskIP(ip),ipCipher:ip?await encryptIP(env.ANALYTICS_SECRET,ip):null});
+    const saved=await rpc('collect',{id:data.id,ticket:ticket.nonce,visitor,session,path:data.path,referrer,...deviceInfo(ua,{touch:Number(data.touch)||0,mobile:data.mobile===true}),country,region:'',city:'',ipMasked:maskIP(ip),ipCipher:ip?await encryptIP(env.ANALYTICS_SECRET,ip):null,trackDuration:data.trackDuration===true});
+    if(data.trackDuration===true&&saved.durationReady===true){
+     const payload=b64(enc.encode(JSON.stringify({id:data.id,ticket:ticket.nonce,visitor,exp:Date.now()+DAY})));
+     return json({ok:true,durationToken:payload+'.'+await hash(env.ANALYTICS_SECRET,'duration:'+payload)});
+    }
     return json({ok:true});
+   }
+   if(path==='/api/duration'&&req.method==='POST'){
+    if(!source(req))return json({error:'來源不符'},403);if(ignored(req))return json({ignored:true});
+    const data=await body(req);
+    if(!data||typeof data.token!=='string'||data.token.length>1000||!Number.isInteger(data.activeMs)||data.activeMs<0||data.activeMs>DAY)return json({error:'停留時間格式錯誤'},400);
+    let token:any;try{
+     const parts=data.token.split('.');
+     if(parts.length!==2||!await crypto.subtle.verify('HMAC',await key(env.ANALYTICS_SECRET,'HMAC'),unb64(parts[1]),enc.encode('duration:'+parts[0])))throw Error();
+     token=JSON.parse(new TextDecoder().decode(unb64(parts[0])));
+     if(!validUUID(token.id)||!validUUID(token.ticket)||typeof token.visitor!=='string'||!Number.isFinite(token.exp)||token.exp<Date.now()||token.exp>Date.now()+DAY)throw Error();
+    }catch{return json({error:'紀錄憑證失效'},403);}
+    if(!await rate('duration:'+token.id,12))return json({error:'請稍後重試'},429);
+    return json(await rpc('duration',{id:token.id,ticket:token.ticket,visitor:token.visitor,activeMs:data.activeMs}));
    }
    // No header names, decoded JWT claims or browser storage decide authorization.
    // Supabase Auth verifies the access token; the email allowlist and pinned user

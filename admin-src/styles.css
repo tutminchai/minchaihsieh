@@ -4,3 +4,5 @@
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.spin{animation:none}}
 
 .login-box .primary{border:0;width:100%;cursor:pointer}.login-box .primary:disabled{opacity:.5;cursor:wait}.status-message{margin-top:15px;line-height:1.8}.boot{padding:60px;text-align:center;color:#718084}.sidebar-bottom button{margin-top:20px;border:0;background:transparent;color:inherit}
+
+.duration-summary{display:flex;align-items:center;gap:16px;padding:20px 24px;margin:0 0 24px;background:#edf2ef;border:1px solid #dce4df;border-radius:12px}.duration-summary>div{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}.duration-summary strong{font-size:24px;color:#1e3e48}.duration-summary p{margin:0 0 0 auto;font-size:13px;color:#617471}.table-scroll table{min-width:1050px}@media(max-width:700px){.duration-summary{flex-wrap:wrap;padding:18px}.duration-summary p{width:100%;margin:0}.duration-summary strong{font-size:21px}}

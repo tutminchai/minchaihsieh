@@ -14,6 +14,7 @@ const db=new PGlite();
 await db.exec('create role anon; create role authenticated; create role service_role bypassrls;');
 await db.exec(await readFile(new URL('../supabase/migrations/202611120001_analytics.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/202611120002_keep_analytics_history.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/202611160003_foreground_duration.sql',import.meta.url),'utf8'));
 for(const role of ['anon','authenticated']){
  await db.exec('set role '+role);
  await assert.rejects(()=>db.query("select public.analytics_rpc('stats','{}')"),/permission denied/);
@@ -54,7 +55,8 @@ ownerIdentity=crypto.randomUUID();assert.equal((await call('me','GET',undefined,
 const visitor=crypto.randomUUID(),session=crypto.randomUUID();
 async function ticket(){const r=await call('ticket');assert.equal(r.status,200);const data=await r.json();assert.equal(data.collection,'automatic-v1');return data.ticket;}
 const event={id:crypto.randomUUID(),visitor,session,ticket:await ticket(),collection:'automatic-v1',path:'/minchaihsieh/',referrer:'https://example.com/private?token=secret',ip:'1.2.3.4',city:'forged'};
-assert.equal((await call('collect','POST',event)).status,200);
+const collected=await call('collect','POST',{...event,trackDuration:true});assert.equal(collected.status,200);
+const durationToken=(await collected.json()).durationToken;assert.equal(typeof durationToken,'string');
 assert.equal((await call('collect','POST',event)).status,200);
 assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID()})).status,200);
 assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket()})).status,200);
@@ -69,10 +71,23 @@ assert.equal((await (await call('collect','POST',event,{'Sec-GPC':'1'})).json())
 assert.equal((await call('collect','POST',{...event,path:'/other/'})).status,400);
 assert.equal((await call('collect','POST',{...event,ticket:'bad.signature'})).status,403);
 assert.equal((await call('collect','POST','x'.repeat(2050))).status,413);
+// Foreground updates are scoped, monotonic, bounded, and never add page views.
+assert.equal((await call('duration','POST',{token:durationToken,activeMs:1000})).status,200);
+await call('duration','POST',{token:durationToken,activeMs:1000});
+await call('duration','POST',{token:durationToken,activeMs:500});
+assert.equal((await call('duration','POST',{token:durationToken,activeMs:-1})).status,400);
+assert.equal((await call('duration','POST',{token:durationToken,activeMs:1.5})).status,400);
+assert.equal((await call('duration','POST',{token:durationToken+'x',activeMs:500})).status,403);
+assert.equal((await (await call('duration','POST',{token:durationToken,activeMs:86400000})).json()).ok,false);
+assert.equal((await (await call('duration','POST',{token:durationToken,activeMs:1500},{DNT:'1'})).json()).ignored,true);
+assert.equal((await rpc('duration',{id:event.id,ticket:crypto.randomUUID(),visitor:'forged',activeMs:500})).ok,false);
+const durationRow=(await db.query<{active_ms:number}>('select active_ms from analytics_private.events where id=$1',[event.id])).rows[0];
+assert.equal(Number(durationRow.active_ms),1000);
+const forgedCollect=await (await call('collect','POST',{...event,visitor:crypto.randomUUID(),trackDuration:true})).json();assert.equal(forgedCollect.durationToken,undefined);
 const stats=await (await call('stats','GET',undefined,admin)).json();
-assert.equal(stats.all.views,3);assert.equal(stats.all.visitors,2);assert.equal(stats.period.visitors,2);assert.equal(stats.trend[0].visitors,2);
+assert.equal(stats.period.averageActiveMs,1000);assert.equal(stats.period.measuredViews,1);assert.equal(stats.all.views,3);assert.equal(stats.all.visitors,2);assert.equal(stats.period.visitors,2);assert.equal(stats.trend[0].visitors,2);
 const records=await (await call('records','GET',undefined,admin)).json();
-assert.equal(records.total,3);assert.equal(records.rows[0].ipMasked,'203.0.113.*');assert.equal(records.rows[0].city,'');assert.equal(records.rows[0].referrer,'example.com');
+assert.equal(records.rows.filter((r:any)=>r.activeMs===null).length,2);assert.equal(records.rows.find((r:any)=>r.id===event.id).activeMs,1000);assert.equal(records.total,3);assert.equal(records.rows[0].ipMasked,'203.0.113.*');assert.equal(records.rows[0].city,'');assert.equal(records.rows[0].referrer,'example.com');
 assert.equal(records.rows[0].country,'TW'); // Country header is ignored in favor of the local database.
 assert(!JSON.stringify(records).includes('203.0.113.24'));assert(!JSON.stringify(records).includes('cipher'));
 assert.equal((await (await call('records?q=203.0.113','GET',undefined,admin)).json()).total,3);
