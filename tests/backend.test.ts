@@ -25,15 +25,22 @@ async function rpc(action:string,data:any){return db.transaction(async tx=>{awai
 await rpc('rate',{key:'expired-test',expires:Date.now()-10000,limit:1});
 assert.equal((await rpc('rate',{key:'expired-test',expires:Date.now()+60000,limit:1})).allowed,true);
 const owner=crypto.randomUUID(),other=crypto.randomUUID();let ownerIdentity=owner;
+let lookupCountry='TW',cityMode:'valid'|'missing'|'error'|'sanitize'='valid',cityCalls=0;
 const handler=createHandler({SUPABASE_URL:'https://testproject.supabase.co',SUPABASE_ANON_KEY:'public-test-key',SUPABASE_SERVICE_ROLE_KEY:'server-test-key',ADMIN_EMAIL:'owner@example.com',ANALYTICS_SECRET:'not-a-real-production-secret-for-test-only'},{rpc,fetcher:(async(_u:any,opt:any)=>{
  const token=new Headers(opt?.headers).get('authorization');
  if(token==='Bearer valid-admin')return Response.json({id:ownerIdentity,email:'owner@example.com',email_confirmed_at:'2026-01-01T00:00:00Z'});
  if(token==='Bearer other-user')return Response.json({id:other,email:'other@example.com',email_confirmed_at:'2026-01-01T00:00:00Z'});
  if(token==='Bearer unconfirmed')return Response.json({id:owner,email:'owner@example.com',email_confirmed_at:null});
  return Response.json({error:'invalid'}, {status:401});
- }) as typeof fetch,countryLookup:async()=> 'TW'});
+ }) as typeof fetch,countryLookup:async()=>lookupCountry,cityLookup:async(ip:string)=>{
+  cityCalls++;assert.equal(ip,'203.0.113.24');
+  if(cityMode==='missing')return null;
+  if(cityMode==='error')throw Error('unavailable');
+  if(cityMode==='sanitize')return {region:'台\u0000南\n市',city:'x'.repeat(100)};
+  return {region:'台南市',city:'台南市'};
+ }});
 const origin='https://tutminchai.github.io';
-const publicHeaders={'Origin':origin,'Referer':origin+'/minchaihsieh/','User-Agent':'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0','cf-connecting-ip':'203.0.113.24','cf-ipcountry':'US'};
+const publicHeaders={'Origin':origin,'Referer':origin+'/minchaihsieh/','User-Agent':'Mozilla/5.0 (Windows NT 10.0) Chrome/130.0','cf-connecting-ip':'203.0.113.24','cf-ipcountry':'US','cf-ipcity':'Kaohsiung'};
 async function call(path:string,method='GET',data?:any,extra:Record<string,string>={}){return handler(new Request('https://testproject.supabase.co/functions/v1/analytics/api/'+path,{method,headers:{...publicHeaders,...extra},...(data!==undefined?{body:typeof data==='string'?data:JSON.stringify(data)}:{})}));}
 const admin={Authorization:'Bearer valid-admin'};
 // Exercise both the public gateway URL and the actual hosted function path.
@@ -87,10 +94,12 @@ const forgedCollect=await (await call('collect','POST',{...event,visitor:crypto.
 const stats=await (await call('stats','GET',undefined,admin)).json();
 assert.equal(stats.period.averageActiveMs,1000);assert.equal(stats.period.measuredViews,1);assert.equal(stats.all.views,3);assert.equal(stats.all.visitors,2);assert.equal(stats.period.visitors,2);assert.equal(stats.trend[0].visitors,2);
 const records=await (await call('records','GET',undefined,admin)).json();
-assert.equal(records.rows.filter((r:any)=>r.activeMs===null).length,2);assert.equal(records.rows.find((r:any)=>r.id===event.id).activeMs,1000);assert.equal(records.total,3);assert.equal(records.rows[0].ipMasked,'203.0.113.*');assert.equal(records.rows[0].city,'');assert.equal(records.rows[0].referrer,'example.com');
+assert.equal(records.rows.filter((r:any)=>r.activeMs===null).length,2);assert.equal(records.rows.find((r:any)=>r.id===event.id).activeMs,1000);assert.equal(records.total,3);assert.equal(records.rows[0].ipMasked,'203.0.113.*');assert.equal(records.rows[0].city,'台南市');assert.equal(records.rows[0].region,'台南市');assert.equal(records.rows[0].referrer,'example.com');
 assert.equal(records.rows[0].country,'TW'); // Country header is ignored in favor of the local database.
 assert(!JSON.stringify(records).includes('203.0.113.24'));assert(!JSON.stringify(records).includes('cipher'));
 assert.equal((await (await call('records?q=203.0.113','GET',undefined,admin)).json()).total,3);
+assert.equal((await (await call('records?q='+encodeURIComponent('台南'),'GET',undefined,admin)).json()).total,3);
+assert.equal((await (await call('records?q='+encodeURIComponent('高雄'),'GET',undefined,admin)).json()).total,0);
 assert.equal((await (await call('records?device=tablet','GET',undefined,admin)).json()).total,0);
 assert.equal((await call('records?page=1.5','GET',undefined,admin)).status,400);
 assert.equal((await call('stats?from=2020-01-01','GET',undefined,admin)).status,200);
@@ -114,6 +123,19 @@ assert.equal((await db.query('select * from analytics_private.audit where at=$1'
 assert.equal((await db.query('select * from analytics_private.sessions where first_at=$1',[oldAt])).rows.length,2);
 assert.equal((await db.query('select * from analytics_private.daily_visitors where day=$1',[oldDay])).rows.length,1);
 assert.equal((await (await call('stats','GET',undefined,admin)).json()).all.views,4);
+// The Taiwan-only lookup cannot override another country. Missing city data and
+// lookup failures keep the visit, rather than trusting body/header geolocation.
+async function collectLocation(){
+ const id=crypto.randomUUID();
+ assert.equal((await call('collect','POST',{...event,id,ticket:await ticket(),region:'forged',city:'forged'})).status,200);
+ return (await db.query<{country:string;region:string;city:string}>('select country,region,city from analytics_private.events where id=$1',[id])).rows[0];
+}
+lookupCountry='US';const callsBefore=cityCalls;
+assert.deepEqual(await collectLocation(),{country:'US',region:'',city:''});assert.equal(cityCalls,callsBefore);
+lookupCountry='TW';cityMode='missing';
+assert.deepEqual(await collectLocation(),{country:'TW',region:'',city:''});
+cityMode='error';assert.deepEqual(await collectLocation(),{country:'TW',region:'',city:''});
+cityMode='sanitize';assert.deepEqual(await collectLocation(),{country:'TW',region:'台南市',city:'x'.repeat(80)});
 await assert.rejects(()=>rpc('unsupported',{}),/Unsupported action/);
 await db.close();
 console.log('PASS: Postgres migration, anon/authenticated denial, owner auth/pinning, automatic collection and legacy compatibility, ticket replay, atomic unique counts, encryption/masking, persistent history beyond ten years, search and filters.');

@@ -1,6 +1,6 @@
 import {ORIGIN,PATHS,taipeiDay,validUUID,clientIP,maskIP,deviceInfo,hash,key,b64,unb64,encryptIP,decryptIP} from './crypto.ts';
 export type Env={SUPABASE_URL:string;SUPABASE_ANON_KEY:string;SUPABASE_SERVICE_ROLE_KEY:string;ADMIN_EMAIL:string;ANALYTICS_SECRET:string};
-type Dependencies={fetcher?:typeof fetch;rpc?:(action:string,data:Record<string,unknown>)=>Promise<any>;countryLookup?:(ip:string)=>Promise<string>};
+type Dependencies={fetcher?:typeof fetch;rpc?:(action:string,data:Record<string,unknown>)=>Promise<any>;countryLookup?:(ip:string)=>Promise<string>;cityLookup?:(ip:string)=>Promise<{region:string;city:string}|null>|{region:string;city:string}|null};
 const DAY=86400000,enc=new TextEncoder();
 const headers={'Cache-Control':'private, no-store','Content-Type':'application/json; charset=utf-8','X-Content-Type-Options':'nosniff','X-Robots-Tag':'noindex, nofollow'};
 const cors={'Access-Control-Allow-Origin':ORIGIN,'Vary':'Origin','Access-Control-Allow-Headers':'authorization, apikey, content-type','Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Max-Age':'600'};
@@ -48,10 +48,11 @@ export function createHandler(env:Env,deps:Dependencies={}){
     const visitor=await hash(env.ANALYTICS_SECRET,'visitor:'+data.visitor),session=await hash(env.ANALYTICS_SECRET,'session:'+data.session);
     if(!await rate('v:'+visitor,30))return json({error:'請稍後重試'},429);
     let referrer='';try{const r=new URL(data.referrer);if(/^https?:$/.test(r.protocol)&&r.origin!==ORIGIN)referrer=r.hostname.slice(0,150);}catch{}
-    // Use only the gateway IP and a server-local country database. Browser locale,
+    // Use only the gateway IP and server-local location databases. Browser locale,
     // request country headers and supplied IP/geo body fields are never trusted.
     let country='';if(ip&&deps.countryLookup){try{const code=await deps.countryLookup(ip);if(/^[A-Z]{2}$/.test(code)&&!['XX','ZZ'].includes(code))country=code;}catch{/* Missing location must not prevent a visit from being recorded. */}}
-    const saved=await rpc('collect',{id:data.id,ticket:ticket.nonce,visitor,session,path:data.path,referrer,...deviceInfo(ua,{touch:Number(data.touch)||0,mobile:data.mobile===true}),country,region:'',city:'',ipMasked:maskIP(ip),ipCipher:ip?await encryptIP(env.ANALYTICS_SECRET,ip):null,trackDuration:data.trackDuration===true});
+    let region='',city='';if(ip&&country==='TW'&&deps.cityLookup){try{const place=await deps.cityLookup(ip);region=text(place?.region);city=text(place?.city);}catch{/* Keep the country and visit if city data is unavailable. */}}
+    const saved=await rpc('collect',{id:data.id,ticket:ticket.nonce,visitor,session,path:data.path,referrer,...deviceInfo(ua,{touch:Number(data.touch)||0,mobile:data.mobile===true}),country,region,city,ipMasked:maskIP(ip),ipCipher:ip?await encryptIP(env.ANALYTICS_SECRET,ip):null,trackDuration:data.trackDuration===true});
     if(data.trackDuration===true&&saved.durationReady===true){
      const payload=b64(enc.encode(JSON.stringify({id:data.id,ticket:ticket.nonce,visitor,exp:Date.now()+DAY})));
      return json({ok:true,durationToken:payload+'.'+await hash(env.ANALYTICS_SECRET,'duration:'+payload)});
