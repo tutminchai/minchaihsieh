@@ -30,6 +30,16 @@ export function createHandler(env:Env,deps:Dependencies={}){
    if(!/^https:\/\/[a-z0-9]+\.supabase\.co$/.test(env.SUPABASE_URL)||!env.SUPABASE_ANON_KEY||!env.SUPABASE_SERVICE_ROLE_KEY||!env.ADMIN_EMAIL||env.ANALYTICS_SECRET.length<32)return json({error:'後台尚未設定完成'},503);
    // Hosted requests keep the function-name prefix after /functions/v1 is stripped.
    const url=new URL(req.url),path=url.pathname.replace(/^(?:\/functions\/v1)?\/analytics(?=\/|$)/,'');
+   if(path==='/api/page-views'&&req.method==='GET'){
+    const result=await fetcher(env.SUPABASE_URL+'/rest/v1/rpc/site_page_views',{
+     headers:{apikey:env.SUPABASE_SERVICE_ROLE_KEY,Authorization:'Bearer '+env.SUPABASE_SERVICE_ROLE_KEY},
+     signal:AbortSignal.timeout(10000)
+    });
+    if(!result.ok)return json({error:'無法讀取累計瀏覽人次'},503);
+    const total=await result.json();
+    if(typeof total!=='string'||!/^\d+$/.test(total))return json({error:'無法讀取累計瀏覽人次'},503);
+    return json(total);
+   }
    const ip=clientIP(req),ua=(req.headers.get('user-agent')||'').slice(0,512);
    if(path==='/api/ticket'&&req.method==='GET'){
     if(!source(req))return json({error:'來源不符'},403);if(ignored(req))return json({ignored:true});

@@ -41,7 +41,7 @@
     addEventListener('pageshow',e=>{if(e.persisted&&durationToken){paused=false;lastTick=document.visibilityState==='visible'?now():null;if(timer===null)timer=setInterval(()=>{void flushDuration();},15000);}});
   }
   async function record(){
-    if(sent||withdrawn||optedOut()||protectedBrowser()||location.origin!=='https://tutminchai.github.io'||!['/minchaihsieh/','/minchaihsieh/index.html','/minchaihsieh/en.html'].includes(location.pathname))return;
+    if(sent||withdrawn||optedOut()||protectedBrowser()||location.origin!=='https://tutminchai.github.io'||!['/minchaihsieh/','/minchaihsieh/index.html','/minchaihsieh/en.html','/minchaihsieh/ja.html'].includes(location.pathname))return;
     if(document.visibilityState==='hidden'){document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')record();},{once:true});return;}
     let visitor,session;
     try{
@@ -59,7 +59,7 @@
     }catch{/* Browsing remains available if statistics cannot be reached. */}
   }
   function init(){
-    record();
+    cfg.currentPageView = record();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
   addEventListener('storage',e=>{if([PREFERENCE,LEGACY_CONSENT].includes(e.key)&&optedOut()){withdrawn=true;controller?.abort();stopDuration();}});

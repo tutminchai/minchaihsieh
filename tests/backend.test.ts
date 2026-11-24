@@ -15,8 +15,10 @@ await db.exec('create role anon; create role authenticated; create role service_
 await db.exec(await readFile(new URL('../supabase/migrations/202611120001_analytics.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/202611120002_keep_analytics_history.sql',import.meta.url),'utf8'));
 await db.exec(await readFile(new URL('../supabase/migrations/202611160003_foreground_duration.sql',import.meta.url),'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261124074639_public_page_views.sql',import.meta.url),'utf8'));
 for(const role of ['anon','authenticated']){
  await db.exec('set role '+role);
+ await assert.rejects(()=>db.query('select public.site_page_views()'),/permission denied/);
  await assert.rejects(()=>db.query("select public.analytics_rpc('stats','{}')"),/permission denied/);
  await assert.rejects(()=>db.query('select * from analytics_private.events'),/permission denied/);
  await db.exec('reset role');
@@ -27,6 +29,14 @@ assert.equal((await rpc('rate',{key:'expired-test',expires:Date.now()+60000,limi
 const owner=crypto.randomUUID(),other=crypto.randomUUID();let ownerIdentity=owner;
 let lookupCountry='TW',cityMode:'valid'|'missing'|'error'|'sanitize'='valid',cityCalls=0;
 const handler=createHandler({SUPABASE_URL:'https://testproject.supabase.co',SUPABASE_ANON_KEY:'public-test-key',SUPABASE_SERVICE_ROLE_KEY:'server-test-key',ADMIN_EMAIL:'owner@example.com',ANALYTICS_SECRET:'not-a-real-production-secret-for-test-only'},{rpc,fetcher:(async(_u:any,opt:any)=>{
+ if(_u==='https://testproject.supabase.co/rest/v1/rpc/site_page_views'){
+  assert.equal(new Headers(opt.headers).get('apikey'),'server-test-key');
+  const result=await db.transaction(async tx=>{
+   await tx.exec('set local role service_role');
+   return tx.query<{views:string}>('select public.site_page_views() as views');
+  });
+  return Response.json(result.rows[0].views);
+ }
  const token=new Headers(opt?.headers).get('authorization');
  if(token==='Bearer valid-admin')return Response.json({id:ownerIdentity,email:'owner@example.com',email_confirmed_at:'2026-01-01T00:00:00Z'});
  if(token==='Bearer other-user')return Response.json({id:other,email:'other@example.com',email_confirmed_at:'2026-01-01T00:00:00Z'});
@@ -49,6 +59,7 @@ for(const prefix of ['/analytics','/functions/v1/analytics']){
  assert.equal(ticketResponse.status,200);assert.equal(typeof (await ticketResponse.json()).ticket,'string');
  assert.equal((await handler(new Request('https://testproject.supabase.co'+prefix+'/api/stats',{headers:publicHeaders}))).status,401);
 }
+assert.equal(await (await call('page-views')).json(),'0');
 assert.equal((await call('stats')).status,401);
 assert.equal((await call('stats','GET',undefined,{'oai-authenticated-user-id':owner,'oai-authenticated-user-email':'owner@example.com'})).status,401);
 assert.equal((await call('stats','GET',undefined,{Authorization:'Bearer other-user'})).status,403);
@@ -67,7 +78,7 @@ const durationToken=(await collected.json()).durationToken;assert.equal(typeof d
 assert.equal((await call('collect','POST',event)).status,200);
 assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID()})).status,200);
 assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket()})).status,200);
-assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket(),visitor:crypto.randomUUID(),session:crypto.randomUUID(),path:'/minchaihsieh/en.html'})).status,200);
+assert.equal((await call('collect','POST',{...event,id:crypto.randomUUID(),ticket:await ticket(),visitor:crypto.randomUUID(),session:crypto.randomUUID(),path:'/minchaihsieh/ja.html'})).status,200);
 assert.equal((await call('collect','POST',{...event,consent:false})).status,400);
 assert.equal((await call('collect','POST',{...event,collection:undefined})).status,400);
 assert.equal((await call('collect','POST',{...event,collection:'unknown'})).status,400);
@@ -92,6 +103,7 @@ const durationRow=(await db.query<{active_ms:number}>('select active_ms from ana
 assert.equal(Number(durationRow.active_ms),1000);
 const forgedCollect=await (await call('collect','POST',{...event,visitor:crypto.randomUUID(),trackDuration:true})).json();assert.equal(forgedCollect.durationToken,undefined);
 const stats=await (await call('stats','GET',undefined,admin)).json();
+assert.equal(await (await call('page-views')).json(),String(stats.all.views));
 assert.equal(stats.period.averageActiveMs,1000);assert.equal(stats.period.measuredViews,1);assert.equal(stats.all.views,3);assert.equal(stats.all.visitors,2);assert.equal(stats.period.visitors,2);assert.equal(stats.trend[0].visitors,2);
 const records=await (await call('records','GET',undefined,admin)).json();
 assert.equal(records.rows.filter((r:any)=>r.activeMs===null).length,2);assert.equal(records.rows.find((r:any)=>r.id===event.id).activeMs,1000);assert.equal(records.total,3);assert.equal(records.rows[0].ipMasked,'203.0.113.*');assert.equal(records.rows[0].city,'台南市');assert.equal(records.rows[0].region,'台南市');assert.equal(records.rows[0].referrer,'example.com');

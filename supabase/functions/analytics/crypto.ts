@@ -1,6 +1,6 @@
 import { isIP } from "node:net";
 export const ORIGIN = "https://tutminchai.github.io";
-export const PATHS = new Set(["/minchaihsieh/", "/minchaihsieh/index.html", "/minchaihsieh/en.html"]);
+export const PATHS = new Set(["/minchaihsieh/", "/minchaihsieh/index.html", "/minchaihsieh/en.html", "/minchaihsieh/ja.html"]);
 const enc=new TextEncoder();
 
 

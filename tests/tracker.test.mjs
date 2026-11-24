@@ -18,8 +18,8 @@ function create(options={}){
  return {advance:ms=>{clock+=ms},tick:()=>interval?.(),durations:()=>requests.filter(x=>x.url.endsWith('/api/duration')),elements,requests,footer,localStorage,sessionStorage,document,listeners,collects:()=>requests.filter(x=>x.url.endsWith('/api/collect'))};
 }
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
-for(const lang of ['zh-Hant','en']){
- const app=create({lang});await settle();
+for(const [lang,path] of [['zh-Hant','/minchaihsieh/'],['en','/minchaihsieh/en.html'],['ja','/minchaihsieh/ja.html']]){
+ const app=create({lang,path});await settle();
  assert.equal(app.collects().length,1,'new visitor records without interaction');
  const payload=JSON.parse(app.collects()[0].init.body);
  assert.equal(payload.collection,'automatic-v1');assert(!('consent' in payload));
