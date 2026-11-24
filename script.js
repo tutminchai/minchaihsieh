@@ -1,6 +1,7 @@
 'use strict';
 const isEnglish = document.documentElement.lang === 'en';
-const localize = (zh, en) => isEnglish ? en : zh;
+const isJapanese = document.documentElement.lang === 'ja';
+const localize = (zh, en, ja) => isJapanese ? ja : isEnglish ? en : zh;
 // Native links work without JavaScript; preserve the current section on a switch.
 document.querySelectorAll('[data-language]').forEach(link => {
   const base = link.getAttribute('href');
@@ -13,12 +14,12 @@ const navigation = document.querySelector('#navigation');
 function closeMenu() {
   navigation.classList.remove('open');
   menu.setAttribute('aria-expanded', 'false');
-  menu.setAttribute('aria-label', localize('開啟導覽選單', 'Open navigation menu'));
+  menu.setAttribute('aria-label', localize('開啟導覽選單', 'Open navigation menu', 'ナビゲーションを開く'));
 }
 menu.addEventListener('click', () => {
   const open = navigation.classList.toggle('open');
   menu.setAttribute('aria-expanded', String(open));
-  menu.setAttribute('aria-label', open ? localize('關閉導覽選單', 'Close navigation menu') : localize('開啟導覽選單', 'Open navigation menu'));
+  menu.setAttribute('aria-label', open ? localize('關閉導覽選單', 'Close navigation menu', 'ナビゲーションを閉じる') : localize('開啟導覽選單', 'Open navigation menu', 'ナビゲーションを開く'));
 });
 navigation.querySelectorAll('a').forEach(link => link.addEventListener('click', closeMenu));
 document.addEventListener('keydown', event => {
@@ -70,10 +71,10 @@ function renderProjects() {
     item.classList.toggle('active', active);
     item.setAttribute('aria-pressed', String(active));
   });
-  filterStatus.textContent = localize(`${activeFilter.textContent}：顯示 ${visible.size} / ${matching.length} 項計畫`, `${activeFilter.textContent}: showing ${visible.size} / ${matching.length} projects`);
+  filterStatus.textContent = localize(`${activeFilter.textContent}：顯示 ${visible.size} / ${matching.length} 項計畫`, `${activeFilter.textContent}: showing ${visible.size} / ${matching.length} projects`, `${activeFilter.textContent}：${visible.size} / ${matching.length} 件を表示`);
   const remaining = matching.length - visible.size;
   moreProjects.hidden = remaining === 0;
-  moreProjects.innerHTML = localize(`查看更多計畫（尚有 ${remaining} 項）`, `More projects (${remaining} remaining)`) + '<span aria-hidden="true">↓</span>';
+  moreProjects.innerHTML = localize(`查看更多計畫（尚有 ${remaining} 項）`, `More projects (${remaining} remaining)`, `もっと見る（残り ${remaining} 件）`) + '<span aria-hidden="true">↓</span>';
 }
 filters.forEach(button => button.addEventListener('click', () => {
   activeFilter = button;
@@ -139,9 +140,9 @@ if (talkArchive && typeof talkArchive.showModal === 'function') {
     groups.forEach(group => {
       const visible = [...group.querySelectorAll('.archive-record')].filter(row => !row.hidden).length;
       group.hidden = visible === 0;
-      group.querySelector('.archive-year-count').textContent = localize(`${visible} 場`, `${visible} ${visible === 1 ? 'talk' : 'talks'}`);
+      group.querySelector('.archive-year-count').textContent = localize(`${visible} 場`, `${visible} ${visible === 1 ? 'talk' : 'talks'}`, `${visible} 件`);
     });
-    status.textContent = localize(`顯示 ${count} / ${rows.length} 場紀錄`, `Showing ${count} / ${rows.length} records`);
+    status.textContent = localize(`顯示 ${count} / ${rows.length} 場紀錄`, `Showing ${count} / ${rows.length} records`, `${count} / ${rows.length} 件を表示`);
     empty.hidden = count > 0;
     reset.disabled = !search.value && !yearFilter.value;
     scrollArea.scrollTop = 0;
@@ -232,7 +233,7 @@ document.querySelectorAll('[data-more-list]').forEach(button => {
     cards.forEach((card, index) => { card.hidden = index >= limit; });
     const remaining = Math.max(0, cards.length - limit);
     button.hidden = remaining === 0;
-    button.textContent = localize(`查看更多（尚有 ${remaining} 件） ↓`, `Show more (${remaining} remaining) ↓`);
+    button.textContent = localize(`查看更多（尚有 ${remaining} 件） ↓`, `Show more (${remaining} remaining) ↓`, `もっと見る（残り ${remaining} 件） ↓`);
   };
   button.addEventListener('click', () => {
     const next = cards[limit];
@@ -251,7 +252,11 @@ if (helper) {
   const close = helper.querySelector('.invite-close');
   const answer = helper.querySelector('.invite-answer');
   const questions = [...helper.querySelectorAll('[data-invite-question]')];
-  const answers = isEnglish ? {
+  const answers = isJapanese ? {
+  "topics": "主なテーマ：\n・AI の授業活用とデジタル教材\n・生成 AI によるゲーム・Web 制作\n・AR／VR と科学教育\n・教育メタバースとインタラクションデザイン\n\n学校のご要望に合わせて内容をご相談いただけます。",
+  "format": "各教育段階の教員・学生を対象に、参加者に応じて難易度を調整します。\n\n60–90 分の講演、2–3 時間の実習、半日・1 日のワークショップなどに対応します。所要時間と必要機器はお問い合わせください。",
+  "request": "ご相談の際は、次の情報をお知らせください。\n・学校・機関名と担当者\n・希望テーマと対象者\n・予定人数・日程・所要時間\n・会場と利用できる機器\n\n下のメールボタンから、これらの項目を記載したメールを作成できます。"
+} : isEnglish ? {
     topics: 'Topics include:\n• AI in teaching and digital learning materials\n• Generative AI for game and web projects\n• AR/VR and science education\n• Educational metaverse and interaction design\n\nContent can be discussed to suit your school’s needs.',
     format: 'Sessions can be adapted for teachers and students at different educational levels.\n\nPossible formats include a 60–90 minute talk, a 2–3 hour practical session, or a half-day / full-day workshop. Please get in touch to confirm duration and equipment needs.',
     request: 'Please include:\n• School / organization and contact person\n• Topic and intended audience\n• Estimated attendance, date and duration\n• Venue and available equipment\n\nThe email button below opens a draft with these fields.'

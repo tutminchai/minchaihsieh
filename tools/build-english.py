@@ -16,6 +16,7 @@ translations = json.loads((ROOT / 'translations/en.json').read_text())
 translations.update(json.loads((ROOT / 'translations/archive.en.json').read_text()))
 translations.update({
     '中文': '中文',
+    '日本語': '日本語',
     '博客來': 'Books.com.tw',
     '博客來搜尋': 'Search Books.com.tw',
     '誠品線上': 'Eslite',

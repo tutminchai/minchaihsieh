@@ -349,3 +349,76 @@ html[lang="en"] .archive-record p{font-size:16px;line-height:1.6}
 .footer-links .admin-login{font-size:13px;line-height:1.5;min-height:44px;display:inline-flex;align-items:center;gap:5px;color:var(--muted)}
 .footer-links .admin-login:hover{color:var(--red);text-decoration:underline;text-underline-offset:4px}
 @media(max-width:600px){.site-footer .footer-links{width:100%;justify-content:space-between;gap:16px}}
+
+/* Japanese reading rhythm and a three-language header. */
+html[lang="ja"]{--serif:"Yu Mincho","Hiragino Mincho ProN","Noto Serif JP",serif;--sans:"Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif}
+html[lang="ja"] body{font-size:18px;line-height:1.9;line-break:strict}
+html[lang="ja"] .hero-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:48px}
+html[lang="ja"] .hero h1{white-space:normal}
+html[lang="ja"] .role{font-size:19px;line-height:1.8}
+html[lang="ja"] .role strong{display:block;margin:0;color:var(--red)}
+html[lang="ja"] .hero-intro>strong{font-size:26px;letter-spacing:0}
+html[lang="ja"] .field-composition{padding:20px 24px 0;background:var(--soft)}
+html[lang="ja"] .field-columns{display:flex;flex-direction:column;padding:0 0 12px}
+html[lang="ja"] .field-column{display:grid;grid-template-columns:26px minmax(0,1fr);align-items:baseline;min-height:0;gap:14px;border:0;border-top:1px solid var(--line);padding:14px 0}
+html[lang="ja"] .vertical-title{writing-mode:horizontal-tb;font-size:22px;line-height:1.55;letter-spacing:0;overflow-wrap:anywhere}
+html[lang="ja"] .field-en{display:none}
+html[lang="ja"] .field-footnote{margin:0 -24px;padding:14px 12px;letter-spacing:0}
+html[lang="ja"] .field-footnote span{display:block;margin:0}
+html[lang="ja"] .section-heading h2{font-size:40px;letter-spacing:.03em}
+html[lang="ja"] .section-heading h2>span{display:block;margin:10px 0 0;font-size:17px;line-height:1.8;letter-spacing:0}
+html[lang="ja"] .talk-card h3,html[lang="ja"] .project-card h3,html[lang="ja"] .selected-talk-card h4{font-size:25px;line-height:1.65}
+html[lang="ja"] .practice-card h4,html[lang="ja"] .patent-card h4,html[lang="ja"] .recognition-item h5{font-size:23px;line-height:1.65}
+html[lang="ja"] .book h3{font-size:23px;line-height:1.6}
+html[lang="ja"] .book-info>p{font-size:16px;line-height:1.8}
+html[lang="ja"] .profile-facts>div{grid-template-columns:1fr;gap:12px}
+html[lang="ja"] .profile-facts dt{color:var(--red)}
+html[lang="ja"] .portfolio-tabs{flex-wrap:wrap}
+html[lang="ja"] .portfolio-tabs button{font-size:17px;padding-inline:18px;gap:12px}
+html[lang="ja"] .project-meta,html[lang="ja"] .recognition-meta{flex-wrap:wrap;gap:8px 14px}
+html[lang="ja"] .archive-record h4{font-size:22px;line-height:1.65}
+html[lang="ja"] .archive-record p{font-size:16px}
+html[lang="ja"] .contact-affiliation{font-size:16px;line-height:1.8}
+.language-switch a[data-language="ja"]{min-width:56px}
+@media(min-width:881px) and (max-width:1100px){
+  .nav-wrap{gap:12px;width:calc(100% - 40px)}
+  #navigation{gap:14px}#navigation>a{font-size:15px}
+  .header-controls{gap:8px}.language-switch{padding-left:8px}
+  .brand{gap:10px}.brand-emblem{width:44px;height:44px}
+  .brand-name{font-size:22px}
+  html[lang="en"] .brand-name{font-size:19px}
+  html[lang="ja"] #navigation>a{font-size:14px}
+}
+@media(max-width:880px){
+  html[lang="ja"] .hero-grid{grid-template-columns:1fr;gap:36px}
+  html[lang="ja"] .field-composition{max-width:none}
+}
+@media(max-width:600px){
+  .brand{gap:8px}.brand-emblem{width:36px;height:36px}
+  .brand-name{font-size:20px;letter-spacing:.06em}
+  .brand-name>span{font-size:10px;letter-spacing:.03em}
+  .header-controls{gap:5px}.language-switch{gap:0}
+  .language-switch a{min-width:32px;padding-inline:3px}
+  .language-switch a[data-language="ja"]{min-width:51px}
+  .menu-toggle{padding-inline:8px}
+  html[lang="ja"] .hero-grid{gap:32px}
+  html[lang="ja"] .hero-intro>strong{font-size:24px}
+  html[lang="ja"] .role{font-size:18px}
+  html[lang="ja"] .section-heading h2{font-size:32px}
+  html[lang="ja"] .section-heading h2>span{font-size:16px}
+  html[lang="ja"] .vertical-title{font-size:21px}
+  html[lang="ja"] .field-footnote .xr-types{font-size:12px}
+  html[lang="ja"] .book h3{font-size:20px}
+  html[lang="ja"] .book-info>p{font-size:15px}
+  html[lang="ja"] .portfolio-tabs button{font-size:15px;padding:10px;gap:8px}
+  html[lang="ja"] .archive-header h2{font-size:23px}
+  html[lang="ja"] .archive-record h4{font-size:20px}
+  html[lang="ja"] .hero-bottom{flex-wrap:wrap;gap:8px}
+}
+@media(max-width:359px){
+  .nav-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;padding-block:10px;gap:6px}
+  .brand{grid-column:1;grid-row:1}
+  .header-controls{display:contents}
+  .menu-toggle{grid-column:2;grid-row:1}
+  .language-switch{grid-column:1/-1;grid-row:2;justify-content:center;border-top:1px solid var(--line);gap:18px}
+}
